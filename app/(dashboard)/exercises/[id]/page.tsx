@@ -5,6 +5,7 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Separator } from '@/components/ui/separator';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   BookOpen,
   Clock,
@@ -16,7 +17,8 @@ import {
   Users,
   Award,
   CheckCircle,
-  AlertCircle
+  AlertCircle,
+  GraduationCap
 } from 'lucide-react';
 import Link from 'next/link';
 import { getExerciseById, getExerciseStats } from '@/lib/db/queries-exercises';
@@ -55,9 +57,16 @@ async function ExerciseDetailContent({ id }: { id: string }) {
     : null;
 
   const objectives = exercise.objectives as string[] || [];
+  const breadcrumbItems = [
+    { label: 'Training', href: '/exercises', icon: GraduationCap },
+    { label: exercise.title }
+  ];
 
   return (
     <div className="flex-1 space-y-6 p-8 pt-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Back Button */}
       <Button variant="ghost" asChild>
         <Link href="/exercises">

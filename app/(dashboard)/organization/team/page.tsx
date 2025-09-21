@@ -12,6 +12,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { Label } from '@/components/ui/label';
 import { useToast } from '@/components/ui/use-toast';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   AlertDialog,
   AlertDialogAction,
@@ -44,7 +45,8 @@ import {
   Filter,
   CheckCircle,
   XCircle,
-  Send
+  Send,
+  Building
 } from 'lucide-react';
 
 interface TeamMember {
@@ -298,8 +300,16 @@ export default function TeamManagementPage() {
     );
   }
 
+  const breadcrumbItems = [
+    { label: 'Organization', href: '/organization', icon: Building },
+    { label: 'Team Management' }
+  ];
+
   return (
     <div className="container mx-auto p-6 space-y-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-4">

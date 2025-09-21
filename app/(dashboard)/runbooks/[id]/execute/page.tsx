@@ -17,6 +17,7 @@ import {
   FileText,
   SkipForward,
   RefreshCw,
+  BookOpen,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -26,6 +27,7 @@ import { Progress } from '@/components/ui/progress';
 import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Alert,
   AlertDescription,
@@ -268,22 +270,34 @@ export default function ExecuteRunbookPage({
       .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const breadcrumbItems = [
+    { label: 'Runbooks', href: '/runbooks', icon: BookOpen },
+    { label: runbook.title, href: `/runbooks/${params.id}` },
+    { label: 'Execute' }
+  ];
+
   return (
-    <div className="flex h-[calc(100vh-4rem)]">
-      {/* Sidebar with step list */}
-      <div className="w-80 border-r bg-muted/10">
-        <div className="p-4 border-b">
-          <Link href={`/runbooks/${params.id}`}>
-            <Button variant="ghost" size="sm" className="mb-2">
-              <ArrowLeft className="mr-2 h-4 w-4" />
-              Back to Runbook
-            </Button>
-          </Link>
-          <h2 className="font-semibold">{runbook.title}</h2>
-          <p className="text-sm text-muted-foreground mt-1">
-            {runbook.description}
-          </p>
-        </div>
+    <div className="flex flex-col h-[calc(100vh-4rem)]">
+      {/* Breadcrumb */}
+      <div className="p-4 border-b">
+        <Breadcrumb items={breadcrumbItems} />
+      </div>
+
+      <div className="flex flex-1 overflow-hidden">
+        {/* Sidebar with step list */}
+        <div className="w-80 border-r bg-muted/10">
+          <div className="p-4 border-b">
+            <Link href={`/runbooks/${params.id}`}>
+              <Button variant="ghost" size="sm" className="mb-2">
+                <ArrowLeft className="mr-2 h-4 w-4" />
+                Back to Runbook
+              </Button>
+            </Link>
+            <h2 className="font-semibold">{runbook.title}</h2>
+            <p className="text-sm text-muted-foreground mt-1">
+              {runbook.description}
+            </p>
+          </div>
 
         <ScrollArea className="h-[calc(100%-8rem)]">
           <div className="p-4 space-y-4">
@@ -594,6 +608,7 @@ export default function ExecuteRunbookPage({
             </div>
           )}
         </ScrollArea>
+        </div>
       </div>
 
       {/* Notes Dialog */}

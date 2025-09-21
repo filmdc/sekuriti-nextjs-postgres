@@ -10,6 +10,7 @@ import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { Checkbox } from '@/components/ui/checkbox';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   Select,
   SelectContent,
@@ -17,7 +18,7 @@ import {
   SelectTrigger,
   SelectValue
 } from '@/components/ui/select';
-import { ArrowLeft, Save } from 'lucide-react';
+import { ArrowLeft, Save, Package } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function EditAssetPage({
@@ -56,8 +57,17 @@ export default async function EditAssetPage({
 
   const updateAssetWithId = updateAssetAction.bind(null, asset.id);
 
+  const breadcrumbItems = [
+    { label: 'Assets', href: '/assets', icon: Package },
+    { label: asset.name, href: `/assets/${asset.id}` },
+    { label: 'Edit' }
+  ];
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Header */}
       <div className="flex items-center gap-4">
         <Button asChild variant="ghost" size="icon">

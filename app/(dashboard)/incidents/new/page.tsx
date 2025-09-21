@@ -6,6 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -39,6 +40,11 @@ export default function NewIncidentPage() {
     detectionDetails: '',
   });
 
+  const breadcrumbItems = [
+    { label: 'Incidents', href: '/incidents', icon: AlertTriangle },
+    { label: 'New Incident' }
+  ];
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setIsSubmitting(true);
@@ -68,6 +74,9 @@ export default function NewIncidentPage() {
 
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
           <Button variant="ghost" size="icon" asChild>

@@ -4,6 +4,7 @@ import { getAssetById } from '@/lib/db/queries-assets';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
+import { Breadcrumb } from '@/components/ui/breadcrumb';
 import {
   ArrowLeft,
   Edit,
@@ -22,7 +23,8 @@ import {
   Cloud,
   Database,
   Users,
-  Briefcase
+  Briefcase,
+  Package
 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteAssetAction } from '@/lib/actions/assets';
@@ -72,8 +74,16 @@ export default async function AssetDetailPage({
   const isExpiring = asset.expiryDate && new Date(asset.expiryDate) <= new Date(Date.now() + 30 * 24 * 60 * 60 * 1000);
   const isExpired = asset.expiryDate && new Date(asset.expiryDate) < new Date();
 
+  const breadcrumbItems = [
+    { label: 'Assets', href: '/assets', icon: Package },
+    { label: asset.name }
+  ];
+
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+      {/* Breadcrumb */}
+      <Breadcrumb items={breadcrumbItems} />
+
       {/* Header */}
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-4">
