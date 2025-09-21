@@ -13,7 +13,8 @@ import {
 import { Badge } from '@/components/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
-import { getRunbooks } from '@/app/actions/runbooks';
+import { getRunbooks } from '@/lib/db/queries-ir';
+import { getTeamForUser } from '@/lib/db/queries';
 
 const INCIDENT_CLASSIFICATIONS = [
   'malware',
@@ -38,13 +39,15 @@ const PHASES = [
 export default async function RunbooksPage({
   searchParams,
 }: {
-  searchParams: { q?: string; classification?: string; template?: string };
+  searchParams: Promise<{ q?: string; classification?: string; template?: string }>;
 }) {
-  const runbooks = await getRunbooks({
-    search: searchParams.q,
-    classification: searchParams.classification,
-    isTemplate: searchParams.template === 'true',
-  });
+  const params = await searchParams;
+  const team = await getTeamForUser();
+  if (!team) {
+    throw new Error('No team found');
+  }
+
+  const runbooks = await getRunbooks(team.id);
 
   return (
     <div className="space-y-6">

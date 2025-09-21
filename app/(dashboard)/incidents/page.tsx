@@ -3,16 +3,14 @@ import { getTeamForUser } from '@/lib/db/queries';
 import { getIncidents } from '@/lib/db/queries-ir';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
+import { IncidentFilters } from '@/components/incidents/incident-filters';
 import {
   AlertTriangle,
   Shield,
   Clock,
   CheckCircle,
   XCircle,
-  Plus,
-  Search,
-  Filter
+  Plus
 } from 'lucide-react';
 import Link from 'next/link';
 
@@ -168,11 +166,12 @@ async function IncidentsList({ searchParams }: { searchParams: any }) {
   );
 }
 
-export default function IncidentsPage({
+export default async function IncidentsPage({
   searchParams,
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const params = await searchParams;
   return (
     <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
       <div className="flex items-center justify-between">
@@ -192,54 +191,11 @@ export default function IncidentsPage({
 
       <Card>
         <CardHeader>
-          <div className="flex flex-col sm:flex-row gap-4">
-            <div className="flex-1">
-              <div className="relative">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" />
-                <form>
-                  <Input
-                    name="search"
-                    placeholder="Search incidents..."
-                    className="pl-10"
-                    defaultValue={searchParams.search as string}
-                  />
-                </form>
-              </div>
-            </div>
-            <div className="flex gap-2">
-              <form className="flex gap-2">
-                <select
-                  name="status"
-                  className="px-3 py-2 border rounded-md text-sm"
-                  defaultValue={searchParams.status as string}
-                  onChange={(e) => e.target.form?.submit()}
-                >
-                  <option value="">All Status</option>
-                  <option value="open">Open</option>
-                  <option value="contained">Contained</option>
-                  <option value="eradicated">Eradicated</option>
-                  <option value="recovered">Recovered</option>
-                  <option value="closed">Closed</option>
-                </select>
-                <select
-                  name="severity"
-                  className="px-3 py-2 border rounded-md text-sm"
-                  defaultValue={searchParams.severity as string}
-                  onChange={(e) => e.target.form?.submit()}
-                >
-                  <option value="">All Severity</option>
-                  <option value="low">Low</option>
-                  <option value="medium">Medium</option>
-                  <option value="high">High</option>
-                  <option value="critical">Critical</option>
-                </select>
-              </form>
-            </div>
-          </div>
+          <IncidentFilters />
         </CardHeader>
         <CardContent>
           <Suspense fallback={<IncidentSkeleton />}>
-            <IncidentsList searchParams={searchParams} />
+            <IncidentsList searchParams={params} />
           </Suspense>
         </CardContent>
       </Card>

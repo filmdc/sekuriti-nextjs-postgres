@@ -2,8 +2,8 @@
 
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { db } from '@/lib/db';
-import { runbooks, runbookSteps, tags } from '@/lib/db/schema-ir';
-import { taggables } from '@/lib/db/schema-tags';
+import { runbooks, runbookSteps } from '@/lib/db/schema-ir';
+import { tags, taggables } from '@/lib/db/schema-tags';
 import { eq, and, or, like, desc, asc } from 'drizzle-orm';
 import { revalidatePath } from 'next/cache';
 
