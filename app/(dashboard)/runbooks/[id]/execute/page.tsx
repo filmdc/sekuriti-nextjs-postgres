@@ -1,0 +1,638 @@
+'use client';
+
+import { useState, useEffect } from 'react';
+import { useRouter } from 'next/navigation';
+import {
+  ArrowLeft,
+  Play,
+  Pause,
+  CheckCircle2,
+  Circle,
+  Clock,
+  Users,
+  AlertTriangle,
+  ChevronLeft,
+  ChevronRight,
+  MessageSquare,
+  FileText,
+  SkipForward,
+  RefreshCw,
+} from 'lucide-react';
+import Link from 'next/link';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Progress } from '@/components/ui/progress';
+import { Textarea } from '@/components/ui/textarea';
+import { Label } from '@/components/ui/label';
+import { Checkbox } from '@/components/ui/checkbox';
+import {
+  Alert,
+  AlertDescription,
+  AlertTitle,
+} from '@/components/ui/alert';
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from '@/components/ui/dialog';
+import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { ScrollArea } from '@/components/ui/scroll-area';
+import { Separator } from '@/components/ui/separator';
+import { getRunbook, createExecution, updateExecutionStep } from '@/app/actions/runbooks';
+import { toast } from '@/components/ui/toast';
+
+const PHASES = [
+  { id: 'detection', label: 'Detection', color: 'bg-blue-500', icon: '🔍' },
+  { id: 'containment', label: 'Containment', color: 'bg-yellow-500', icon: '🛡️' },
+  { id: 'eradication', label: 'Eradication', color: 'bg-orange-500', icon: '🗑️' },
+  { id: 'recovery', label: 'Recovery', color: 'bg-green-500', icon: '♻️' },
+  { id: 'post_incident', label: 'Post-Incident', color: 'bg-purple-500', icon: '📝' },
+];
+
+interface RunbookStep {
+  id: string;
+  phase: string;
+  stepNumber: number;
+  title: string;
+  description: string;
+  responsibleRole: string;
+  estimatedDuration: number;
+  isCritical: boolean;
+  tools?: string;
+  notes?: string;
+}
+
+interface StepExecution {
+  stepId: string;
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  startedAt?: Date;
+  completedAt?: Date;
+  executedBy?: string;
+  notes?: string;
+  actualDuration?: number;
+}
+
+export default function ExecuteRunbookPage({
+  params,
+  searchParams,
+}: {
+  params: { id: string };
+  searchParams: { incident?: string };
+}) {
+  const router = useRouter();
+  const [isLoading, setIsLoading] = useState(true);
+  const [runbook, setRunbook] = useState<any>(null);
+  const [currentStepIndex, setCurrentStepIndex] = useState(0);
+  const [executionStartTime, setExecutionStartTime] = useState<Date | null>(null);
+  const [executionId, setExecutionId] = useState<string | null>(null);
+  const [stepExecutions, setStepExecutions] = useState<Map<string, StepExecution>>(new Map());
+  const [isPaused, setIsPaused] = useState(false);
+  const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [currentStepNotes, setCurrentStepNotes] = useState('');
+  const [elapsedTime, setElapsedTime] = useState(0);
+
+  // Timer effect
+  useEffect(() => {
+    let interval: NodeJS.Timeout;
+    if (executionStartTime && !isPaused) {
+      interval = setInterval(() => {
+        setElapsedTime(Math.floor((Date.now() - executionStartTime.getTime()) / 1000));
+      }, 1000);
+    }
+    return () => clearInterval(interval);
+  }, [executionStartTime, isPaused]);
+
+  useEffect(() => {
+    loadRunbook();
+  }, [params.id]);
+
+  const loadRunbook = async () => {
+    setIsLoading(true);
+    try {
+      const data = await getRunbook(params.id);
+      if (!data) {
+        toast.error('Runbook not found');
+        router.push('/runbooks');
+        return;
+      }
+      setRunbook(data);
+
+      // Initialize step executions
+      const executions = new Map<string, StepExecution>();
+      data.steps?.forEach((step: RunbookStep) => {
+        executions.set(step.id, {
+          stepId: step.id,
+          status: 'pending',
+        });
+      });
+      setStepExecutions(executions);
+    } catch (error) {
+      toast.error('Failed to load runbook');
+      console.error(error);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const startExecution = async () => {
+    try {
+      const execId = await createExecution({
+        runbookId: params.id,
+        incidentId: searchParams.incident,
+      });
+      setExecutionId(execId);
+      setExecutionStartTime(new Date());
+
+      // Mark first step as in progress
+      const firstStep = runbook.steps[0];
+      if (firstStep) {
+        updateStepStatus(firstStep.id, 'in_progress');
+      }
+
+      toast.success('Runbook execution started');
+    } catch (error) {
+      toast.error('Failed to start execution');
+      console.error(error);
+    }
+  };
+
+  const updateStepStatus = (stepId: string, status: StepExecution['status'], notes?: string) => {
+    setStepExecutions(prev => {
+      const updated = new Map(prev);
+      const execution = updated.get(stepId);
+      if (execution) {
+        execution.status = status;
+        if (status === 'in_progress') {
+          execution.startedAt = new Date();
+        } else if (status === 'completed' || status === 'skipped') {
+          execution.completedAt = new Date();
+          if (execution.startedAt) {
+            execution.actualDuration = Math.floor(
+              (execution.completedAt.getTime() - execution.startedAt.getTime()) / 60000
+            );
+          }
+        }
+        if (notes) {
+          execution.notes = notes;
+        }
+      }
+      return updated;
+    });
+
+    // Save to backend
+    if (executionId) {
+      updateExecutionStep(executionId, stepId, { status, notes });
+    }
+  };
+
+  const completeCurrentStep = () => {
+    const currentStep = runbook.steps[currentStepIndex];
+    if (currentStep) {
+      updateStepStatus(currentStep.id, 'completed', currentStepNotes);
+      setCurrentStepNotes('');
+
+      // Move to next step
+      if (currentStepIndex < runbook.steps.length - 1) {
+        const nextIndex = currentStepIndex + 1;
+        setCurrentStepIndex(nextIndex);
+        updateStepStatus(runbook.steps[nextIndex].id, 'in_progress');
+      } else {
+        // All steps completed
+        toast.success('Runbook execution completed!');
+      }
+    }
+  };
+
+  const skipCurrentStep = () => {
+    const currentStep = runbook.steps[currentStepIndex];
+    if (currentStep) {
+      updateStepStatus(currentStep.id, 'skipped', currentStepNotes);
+      setCurrentStepNotes('');
+
+      // Move to next step
+      if (currentStepIndex < runbook.steps.length - 1) {
+        const nextIndex = currentStepIndex + 1;
+        setCurrentStepIndex(nextIndex);
+        updateStepStatus(runbook.steps[nextIndex].id, 'in_progress');
+      }
+    }
+  };
+
+  const goToStep = (index: number) => {
+    const prevStep = runbook.steps[currentStepIndex];
+    const newStep = runbook.steps[index];
+
+    if (prevStep && stepExecutions.get(prevStep.id)?.status === 'in_progress') {
+      updateStepStatus(prevStep.id, 'pending');
+    }
+
+    setCurrentStepIndex(index);
+    if (newStep) {
+      updateStepStatus(newStep.id, 'in_progress');
+    }
+  };
+
+  if (isLoading || !runbook) {
+    return (
+      <div className="flex items-center justify-center h-96">
+        <div className="text-muted-foreground">Loading runbook...</div>
+      </div>
+    );
+  }
+
+  const currentStep = runbook.steps[currentStepIndex];
+  const completedSteps = Array.from(stepExecutions.values()).filter(
+    e => e.status === 'completed'
+  ).length;
+  const progressPercentage = (completedSteps / runbook.steps.length) * 100;
+
+  // Group steps by phase for sidebar
+  const stepsByPhase = runbook.steps?.reduce((acc: any, step: RunbookStep, index: number) => {
+    if (!acc[step.phase]) {
+      acc[step.phase] = [];
+    }
+    acc[step.phase].push({ ...step, index });
+    return acc;
+  }, {}) || {};
+
+  const formatTime = (seconds: number) => {
+    const hours = Math.floor(seconds / 3600);
+    const minutes = Math.floor((seconds % 3600) / 60);
+    const secs = seconds % 60;
+    return `${hours.toString().padStart(2, '0')}:${minutes
+      .toString()
+      .padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  return (
+    <div className="flex h-[calc(100vh-4rem)]">
+      {/* Sidebar with step list */}
+      <div className="w-80 border-r bg-muted/10">
+        <div className="p-4 border-b">
+          <Link href={`/runbooks/${params.id}`}>
+            <Button variant="ghost" size="sm" className="mb-2">
+              <ArrowLeft className="mr-2 h-4 w-4" />
+              Back to Runbook
+            </Button>
+          </Link>
+          <h2 className="font-semibold">{runbook.title}</h2>
+          <p className="text-sm text-muted-foreground mt-1">
+            {runbook.description}
+          </p>
+        </div>
+
+        <ScrollArea className="h-[calc(100%-8rem)]">
+          <div className="p-4 space-y-4">
+            {PHASES.map((phase) => {
+              const phaseSteps = stepsByPhase[phase.id] || [];
+              if (phaseSteps.length === 0) return null;
+
+              return (
+                <div key={phase.id}>
+                  <div className="flex items-center gap-2 mb-2">
+                    <span className="text-lg">{phase.icon}</span>
+                    <span className="text-sm font-medium">{phase.label}</span>
+                    <Badge variant="secondary" className="text-xs">
+                      {phaseSteps.filter((s: any) =>
+                        stepExecutions.get(s.id)?.status === 'completed'
+                      ).length}/{phaseSteps.length}
+                    </Badge>
+                  </div>
+                  <div className="space-y-1">
+                    {phaseSteps.map((step: any) => {
+                      const execution = stepExecutions.get(step.id);
+                      const isActive = step.index === currentStepIndex;
+
+                      return (
+                        <button
+                          key={step.id}
+                          onClick={() => goToStep(step.index)}
+                          className={`w-full text-left p-2 rounded-lg transition-colors ${
+                            isActive
+                              ? 'bg-primary text-primary-foreground'
+                              : 'hover:bg-muted'
+                          }`}
+                        >
+                          <div className="flex items-start gap-2">
+                            <div className="mt-0.5">
+                              {execution?.status === 'completed' ? (
+                                <CheckCircle2 className="h-4 w-4 text-green-500" />
+                              ) : execution?.status === 'in_progress' ? (
+                                <Circle className="h-4 w-4 text-yellow-500 animate-pulse" />
+                              ) : execution?.status === 'skipped' ? (
+                                <SkipForward className="h-4 w-4 text-gray-500" />
+                              ) : (
+                                <Circle className="h-4 w-4 text-gray-400" />
+                              )}
+                            </div>
+                            <div className="flex-1">
+                              <p className={`text-sm ${isActive ? '' : 'text-muted-foreground'}`}>
+                                {step.title}
+                              </p>
+                              {step.isCritical && (
+                                <Badge
+                                  variant="destructive"
+                                  className="text-xs mt-1"
+                                >
+                                  Critical
+                                </Badge>
+                              )}
+                            </div>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </ScrollArea>
+
+        <div className="p-4 border-t">
+          <div className="space-y-2">
+            <div className="flex justify-between text-sm">
+              <span>Progress</span>
+              <span>{Math.round(progressPercentage)}%</span>
+            </div>
+            <Progress value={progressPercentage} />
+          </div>
+        </div>
+      </div>
+
+      {/* Main execution area */}
+      <div className="flex-1 flex flex-col">
+        {/* Execution header */}
+        <div className="p-4 border-b bg-background">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              {!executionStartTime ? (
+                <Button onClick={startExecution}>
+                  <Play className="mr-2 h-4 w-4" />
+                  Start Execution
+                </Button>
+              ) : (
+                <>
+                  <Button
+                    variant={isPaused ? 'default' : 'outline'}
+                    onClick={() => setIsPaused(!isPaused)}
+                  >
+                    {isPaused ? (
+                      <>
+                        <Play className="mr-2 h-4 w-4" />
+                        Resume
+                      </>
+                    ) : (
+                      <>
+                        <Pause className="mr-2 h-4 w-4" />
+                        Pause
+                      </>
+                    )}
+                  </Button>
+                  <div className="flex items-center gap-2 text-sm">
+                    <Clock className="h-4 w-4" />
+                    <span className="font-mono">{formatTime(elapsedTime)}</span>
+                  </div>
+                </>
+              )}
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-sm text-muted-foreground">
+                Step {currentStepIndex + 1} of {runbook.steps.length}
+              </span>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goToStep(Math.max(0, currentStepIndex - 1))}
+                disabled={currentStepIndex === 0}
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </Button>
+              <Button
+                variant="ghost"
+                size="icon"
+                onClick={() => goToStep(Math.min(runbook.steps.length - 1, currentStepIndex + 1))}
+                disabled={currentStepIndex === runbook.steps.length - 1}
+              >
+                <ChevronRight className="h-4 w-4" />
+              </Button>
+            </div>
+          </div>
+        </div>
+
+        {/* Current step details */}
+        <ScrollArea className="flex-1 p-6">
+          {currentStep && (
+            <div className="max-w-4xl mx-auto space-y-6">
+              {/* Step header */}
+              <Card>
+                <CardHeader>
+                  <div className="flex items-start justify-between">
+                    <div>
+                      <CardTitle className="flex items-center gap-2">
+                        {currentStep.title}
+                        {currentStep.isCritical && (
+                          <Badge variant="destructive">Critical</Badge>
+                        )}
+                      </CardTitle>
+                      <CardDescription className="mt-2">
+                        Phase: {PHASES.find(p => p.id === currentStep.phase)?.label}
+                      </CardDescription>
+                    </div>
+                    <div className="text-right space-y-1">
+                      {currentStep.responsibleRole && (
+                        <div className="flex items-center gap-2 text-sm">
+                          <Users className="h-4 w-4" />
+                          <span>{currentStep.responsibleRole}</span>
+                        </div>
+                      )}
+                      <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                        <Clock className="h-4 w-4" />
+                        <span>Est: {currentStep.estimatedDuration} min</span>
+                      </div>
+                    </div>
+                  </div>
+                </CardHeader>
+                <CardContent>
+                  <Tabs defaultValue="instructions" className="w-full">
+                    <TabsList>
+                      <TabsTrigger value="instructions">Instructions</TabsTrigger>
+                      {currentStep.tools && <TabsTrigger value="tools">Tools</TabsTrigger>}
+                      {currentStep.notes && <TabsTrigger value="notes">Notes</TabsTrigger>}
+                    </TabsList>
+
+                    <TabsContent value="instructions" className="mt-4">
+                      <div className="prose prose-sm dark:prose-invert max-w-none">
+                        <p className="whitespace-pre-wrap">{currentStep.description}</p>
+                      </div>
+
+                      {currentStep.isCritical && (
+                        <Alert className="mt-4">
+                          <AlertTriangle className="h-4 w-4" />
+                          <AlertTitle>Critical Step</AlertTitle>
+                          <AlertDescription>
+                            This is a critical step. Please ensure all instructions are followed carefully.
+                          </AlertDescription>
+                        </Alert>
+                      )}
+                    </TabsContent>
+
+                    {currentStep.tools && (
+                      <TabsContent value="tools" className="mt-4">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <pre className="text-sm bg-muted p-4 rounded-lg overflow-x-auto">
+                              <code>{currentStep.tools}</code>
+                            </pre>
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                    )}
+
+                    {currentStep.notes && (
+                      <TabsContent value="notes" className="mt-4">
+                        <Card>
+                          <CardContent className="pt-6">
+                            <p className="text-sm whitespace-pre-wrap">{currentStep.notes}</p>
+                          </CardContent>
+                        </Card>
+                      </TabsContent>
+                    )}
+                  </Tabs>
+                </CardContent>
+              </Card>
+
+              {/* Step actions */}
+              <Card>
+                <CardHeader>
+                  <CardTitle>Step Completion</CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="step-notes">Execution Notes (Optional)</Label>
+                    <Textarea
+                      id="step-notes"
+                      placeholder="Add any notes about the execution of this step..."
+                      value={currentStepNotes}
+                      onChange={(e) => setCurrentStepNotes(e.target.value)}
+                      rows={3}
+                    />
+                  </div>
+
+                  <div className="flex items-center gap-4">
+                    <div className="flex items-center space-x-2">
+                      <Checkbox id="confirm" />
+                      <Label htmlFor="confirm">
+                        I confirm this step has been completed
+                      </Label>
+                    </div>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button
+                      onClick={completeCurrentStep}
+                      disabled={!executionStartTime}
+                      className="flex-1"
+                    >
+                      <CheckCircle2 className="mr-2 h-4 w-4" />
+                      Complete Step
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={skipCurrentStep}
+                      disabled={!executionStartTime}
+                    >
+                      <SkipForward className="mr-2 h-4 w-4" />
+                      Skip
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowNotesDialog(true)}
+                      disabled={!executionStartTime}
+                    >
+                      <MessageSquare className="mr-2 h-4 w-4" />
+                      Add Note
+                    </Button>
+                  </div>
+                </CardContent>
+              </Card>
+
+              {/* Step history */}
+              {stepExecutions.get(currentStep.id)?.status === 'completed' && (
+                <Card>
+                  <CardHeader>
+                    <CardTitle>Step Execution History</CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Status:</span>
+                        <Badge variant="success">Completed</Badge>
+                      </div>
+                      {stepExecutions.get(currentStep.id)?.actualDuration && (
+                        <div className="flex justify-between">
+                          <span className="text-muted-foreground">Actual Duration:</span>
+                          <span>{stepExecutions.get(currentStep.id)?.actualDuration} min</span>
+                        </div>
+                      )}
+                      {stepExecutions.get(currentStep.id)?.notes && (
+                        <div>
+                          <span className="text-muted-foreground">Notes:</span>
+                          <p className="mt-1 p-2 bg-muted rounded">
+                            {stepExecutions.get(currentStep.id)?.notes}
+                          </p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+            </div>
+          )}
+        </ScrollArea>
+      </div>
+
+      {/* Notes Dialog */}
+      <Dialog open={showNotesDialog} onOpenChange={setShowNotesDialog}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Add Execution Note</DialogTitle>
+            <DialogDescription>
+              Add a note about the current step execution
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <Textarea
+              placeholder="Enter your note..."
+              value={currentStepNotes}
+              onChange={(e) => setCurrentStepNotes(e.target.value)}
+              rows={5}
+            />
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setShowNotesDialog(false)}>
+              Cancel
+            </Button>
+            <Button onClick={() => {
+              const currentStep = runbook.steps[currentStepIndex];
+              if (currentStep) {
+                const execution = stepExecutions.get(currentStep.id);
+                if (execution) {
+                  execution.notes = currentStepNotes;
+                }
+              }
+              setShowNotesDialog(false);
+              toast.success('Note added');
+            }}>
+              Save Note
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+    </div>
+  );
+}
