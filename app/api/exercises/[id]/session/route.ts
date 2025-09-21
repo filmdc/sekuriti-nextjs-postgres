@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/next-auth';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/drizzle';
 import { exerciseCompletions } from '@/lib/db/schema-ir';
 import { eq, and, isNull } from 'drizzle-orm';

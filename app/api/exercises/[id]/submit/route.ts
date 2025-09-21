@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/next-auth';
+import { auth } from '@/lib/auth';
 import { submitExercise } from '@/lib/db/queries-exercises';
 
 export async function POST(

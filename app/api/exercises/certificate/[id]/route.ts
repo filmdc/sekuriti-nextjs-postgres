@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { auth } from '@/lib/auth/next-auth';
+import { auth } from '@/lib/auth';
 import { db } from '@/lib/db/drizzle';
 import { exerciseCompletions, tabletopExercises } from '@/lib/db/schema-ir';
 import { users } from '@/lib/db/schema';
