@@ -27,21 +27,32 @@ stripe listen --forward-to localhost:3000/api/stripe/webhook
 ### Stack
 - **Framework**: Next.js 15 (App Router) with React 19
 - **Database**: PostgreSQL with Drizzle ORM
-- **Authentication**: JWT stored in httpOnly cookies
+- **Authentication**: JWT stored in httpOnly cookies with 2FA support
 - **Payments**: Stripe subscriptions
 - **UI**: Tailwind CSS 4 + shadcn/ui components
+- **Email**: Resend for 2FA and notifications
 
 ### Project Structure
 ```
 app/
-├── (dashboard)/     # Protected routes - authenticated users only
-│   ├── dashboard/   # User dashboard pages
-│   └── pricing/     # Pricing page with Stripe integration
-├── (login)/        # Auth pages - sign-in/sign-up
-│   └── actions.ts  # Server actions for authentication
-└── api/            # API routes
-    ├── stripe/     # Stripe webhook handlers
-    └── team/       # Team management endpoints
+├── (dashboard)/          # Protected routes - authenticated users only
+│   ├── dashboard/        # User dashboard pages
+│   ├── incidents/        # Incident response management
+│   ├── assets/          # Asset inventory and management
+│   ├── runbooks/        # Response procedures and execution
+│   ├── communications/  # Template management with variables
+│   ├── exercises/       # Training and tabletop exercises
+│   ├── organization/    # Team, billing, settings, tags
+│   └── pricing/         # Pricing page with Stripe integration
+├── (login)/             # Auth pages - sign-in/sign-up with 2FA
+│   └── actions.ts       # Server actions for authentication
+└── api/                 # API routes
+    ├── stripe/          # Stripe webhook handlers
+    ├── incidents/       # Incident management endpoints
+    ├── assets/          # Asset CRUD operations
+    ├── runbooks/        # Runbook execution tracking
+    ├── organization/    # Team, billing, tags, insurance
+    └── communications/  # Template management
 ```
 
 ### Key Patterns
@@ -54,11 +65,17 @@ app/
   - `validatedActionWithUser()` - Requires authenticated user
   - `withTeam()` - Requires team membership
 
-#### Database Schema (`lib/db/schema.ts`)
+#### Database Schema
+- **Core Schema** (`lib/db/schema.ts`): Multi-tenancy, RBAC, audit trails
+- **IR Schema** (`lib/db/schema-ir.ts`): Incidents, assets, runbooks, training, communications
+- **Tagging Schema** (`lib/db/schema-tags.ts`): Polymorphic tagging and asset grouping
 - **Multi-tenancy**: Team-based architecture where users belong to teams
-- **RBAC**: Role system with `owner` and `member` roles on `teamMembers`
-- **Audit Trail**: `activityLogs` table tracks all user actions with `ActivityType` enum
-- **Relationships**: Drizzle relations defined for efficient queries
+- **RBAC**: Role system with `owner`, `admin`, and `member` roles
+- **Audit Trail**: Comprehensive logging with `ActivityType` enum
+- **Incident Response**: 6-phase incident lifecycle (Detection → Post-Incident)
+- **Asset Management**: Full asset inventory with criticality levels and tagging
+- **Polymorphic Tagging**: Universal tagging system across all entities
+- **Hierarchical Grouping**: Asset grouping with dynamic rules
 
 #### Stripe Integration
 - **Subscription Flow**:
@@ -89,3 +106,35 @@ Required in `.env`:
 - `BASE_URL` - Application URL
 - `STRIPE_SECRET_KEY` - Stripe API key
 - `STRIPE_WEBHOOK_SECRET` - Webhook endpoint secret
+- `RESEND_API_KEY` - Resend API key for 2FA and notifications
+
+## Cybersecurity Features
+
+### Incident Response Platform
+- **6-Phase Incident Lifecycle**: Detection, Containment, Eradication, Recovery, Post-Incident, Closure
+- **Asset-Centric Response**: Link incidents to affected assets and responsible teams
+- **Runbook Execution**: Step-by-step guided response with evidence collection
+- **Communication Templates**: Variable-based stakeholder messaging
+- **Training Module**: Tabletop exercises and scenario simulations
+
+### Asset Management
+- **Comprehensive Inventory**: Hardware, software, services, people, data
+- **Criticality Levels**: Critical, High, Medium, Low with visual indicators
+- **Polymorphic Tagging**: Universal tagging system across all entities
+- **Asset Grouping**: Hierarchical organization with dynamic rules
+- **Bulk Operations**: Efficient management of large asset inventories
+
+### Security Features
+- **2FA Authentication**: Email-based two-factor authentication
+- **Role-Based Access**: Owner, Admin, Member with appropriate permissions
+- **Audit Logging**: Comprehensive activity tracking for compliance
+- **Organization Settings**: Insurance, billing, team management
+- **Tag Governance**: Centralized tag management and policies
+
+### UX Enhancements (Latest)
+- **Professional Design System**: Enterprise-grade UI with cybersecurity-specific indicators
+- **Mobile-First**: Optimized for incident response in the field
+- **Navigation System**: Breadcrumbs, sidebar, and global search
+- **Form Enhancements**: Auto-save, validation, optimistic UI
+- **User Feedback**: Loading states, confirmations, progress tracking
+- **Visual Consistency**: Standardized spacing, typography, and status colors
