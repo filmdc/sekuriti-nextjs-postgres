@@ -33,6 +33,8 @@ import {
 import { Alert, AlertDescription, AlertTitle } from '@/components/ui/alert';
 import { TemplateEditor } from '@/components/communications/TemplateEditor';
 import { TemplatePreview } from '@/components/communications/TemplatePreview';
+import { extractVariables, getDefaultVariableValues, getIncidentVariableData, replaceVariables } from '@/lib/template-variables';
+import { cn } from '@/lib/utils';
 
 interface VariableValue {
   key: string;
@@ -112,29 +114,49 @@ export default function UseTemplatePage({
     subject: 'Important Security Update - {{organization.name}}',
     content: `Dear {{customer.name}},
 
-We are writing to inform you about a security incident: {{incident.title}}.
+We are writing to inform you about a security incident: **{{incident.title}}**.
 
-**Incident Details:**
-- Severity: {{incident.severity}}
-- Status: {{incident.status}}
-- Detected: {{incident.detectedAt}}
+## Incident Details
+- **Severity:** {{incident.severity}}
+- **Status:** {{incident.status}}
+- **Detected:** {{incident.detectedAt}}
+- **Type:** {{incident.type}}
+- **Impact Level:** {{incident.impactLevel}}
 
 {{incident.description}}
 
-**Actions Taken:**
-We have implemented immediate security measures to contain and resolve this issue.
+## Affected Systems
+- **Asset:** {{asset.name}} ({{asset.type}})
+- **Location:** {{asset.location}}
+- **Criticality:** {{asset.criticality}}
+- **Data Classification:** {{asset.dataClassification}}
+- **Affected Records:** {{asset.affectedRecords}}
 
-**What You Should Do:**
+## Actions Taken
+We have implemented immediate security measures to contain and resolve this issue. The incident was contained at {{incident.containedAt}}.
+
+## What You Should Do
 1. Monitor your accounts for any suspicious activity
-2. Change your password on our platform
-3. Enable two-factor authentication
+2. Change your password on our platform immediately
+3. Enable two-factor authentication if not already active
+4. Review your account activity for the past 30 days
 
-If you have any questions, please contact us at {{organization.contact}} or call {{organization.phone}}.
+## Contact Information
+If you have any questions or concerns, please contact our security team:
+- **Email:** {{organization.contact}}
+- **Phone:** {{organization.phone}}
+- **Website:** {{organization.website}}
+
+**Response Deadline:** {{datetime.deadline}}
 
 Sincerely,
-{{user.name}}
-{{user.role}}
-{{organization.name}}`,
+
+{{user.signature}}
+
+---
+**{{organization.name}}**
+{{organization.address}}
+This communication was generated on {{datetime.reportDate}}`,
     tags: ['customer', 'breach', 'notification'],
   });
 
@@ -151,61 +173,28 @@ Sincerely,
     const values: VariableValue[] = [];
 
     // Extract variables from template content and subject
-    const regex = /{{([^}]+)}}/g;
-    const allText = `${template.content} ${template.subject || ''}`;
-    const matches = Array.from(new Set(allText.match(regex) || []));
+    const variables = extractVariables(template.content, template.subject);
 
-    matches.forEach(match => {
-      const key = match.replace(/{{|}}/g, '').trim();
+    // Get default variable data with incident context
+    const variableData = getIncidentVariableData(incident);
+
+    variables.forEach(variableKey => {
       let value = '';
 
-      // Auto-fill incident data
-      if (incident && key.startsWith('incident.')) {
-        const field = key.replace('incident.', '');
-        value = incident[field] || '';
+      // Parse variable path
+      const [category, field] = variableKey.split('.');
+
+      if (category && field && variableData[category as keyof typeof variableData]) {
+        const categoryData = variableData[category as keyof typeof variableData] as Record<string, any>;
+        value = categoryData[field] || '';
       }
 
-      // Auto-fill organization data (mock)
-      if (key.startsWith('organization.')) {
-        const orgData: any = {
-          name: 'Acme Corporation',
-          contact: 'security@acme.com',
-          phone: '+1-555-0100',
-          website: 'https://acme.com',
-        };
-        const field = key.replace('organization.', '');
-        value = orgData[field] || '';
-      }
-
-      // Auto-fill user data (mock)
-      if (key.startsWith('user.')) {
-        const userData: any = {
-          name: 'John Doe',
-          email: 'john@acme.com',
-          role: 'Security Team Lead',
-        };
-        const field = key.replace('user.', '');
-        value = userData[field] || '';
-      }
-
-      // Auto-fill datetime
-      if (key.startsWith('datetime.')) {
-        const now = new Date();
-        if (key === 'datetime.current') {
-          value = now.toISOString().replace('T', ' ').slice(0, -5) + ' UTC';
-        } else if (key === 'datetime.date') {
-          value = now.toISOString().split('T')[0];
-        } else if (key === 'datetime.time') {
-          value = now.toTimeString().split(' ')[0] + ' UTC';
-        }
-      }
-
-      // Add customer name placeholder
-      if (key === 'customer.name') {
+      // Add customer name placeholder for demo
+      if (variableKey === 'customer.name') {
         value = '[Customer Name]';
       }
 
-      values.push({ key, value });
+      values.push({ key: variableKey, value });
     });
 
     return values;
@@ -214,23 +203,24 @@ Sincerely,
   const processTemplate = () => {
     if (!template) return;
 
-    let content = template.content;
-    let subject = template.subject || '';
-    const missing: string[] = [];
-
+    // Build custom values map from current variable values
+    const customValues: Record<string, string> = {};
     variableValues.forEach(({ key, value }) => {
-      const regex = new RegExp(`{{\\s*${key}\\s*}}`, 'g');
-      if (value) {
-        content = content.replace(regex, value);
-        subject = subject.replace(regex, value);
-      } else {
-        missing.push(key);
+      if (value !== undefined && value !== null) {
+        customValues[key] = value;
       }
     });
 
-    setProcessedContent(content);
-    setProcessedSubject(subject);
-    setMissingVariables(missing);
+    // Get default variable data as fallback
+    const defaultData = getDefaultVariableValues();
+
+    // Process content with both custom values and defaults
+    const contentResult = replaceVariables(template.content, defaultData, customValues);
+    const subjectResult = replaceVariables(template.subject || '', defaultData, customValues);
+
+    setProcessedContent(contentResult.content);
+    setProcessedSubject(subjectResult.content);
+    setMissingVariables([...new Set([...contentResult.missingVariables, ...subjectResult.missingVariables])]);
   };
 
   const handleVariableChange = (key: string, value: string) => {
@@ -491,22 +481,46 @@ Sincerely,
               </CardDescription>
             </CardHeader>
             <CardContent className="space-y-3">
-              {variableValues.map(({ key, value }) => (
-                <div key={key} className="space-y-2">
-                  <Label htmlFor={key} className="text-sm">
-                    <code className="rounded bg-muted px-1 py-0.5">
-                      {`{{${key}}}`}
-                    </code>
-                  </Label>
-                  <Input
-                    id={key}
-                    value={value}
-                    onChange={(e) => handleVariableChange(key, e.target.value)}
-                    placeholder={`Enter ${key}...`}
-                    className={!value ? 'border-destructive' : ''}
-                  />
+              {variableValues.length === 0 ? (
+                <div className="text-center py-8 text-muted-foreground">
+                  <p className="text-sm">No variables found in this template</p>
                 </div>
-              ))}
+              ) : (
+                variableValues.map(({ key, value }) => {
+                  const [category, field] = key.split('.');
+                  const isEmpty = !value || value.trim() === '';
+
+                  return (
+                    <div key={key} className="space-y-2">
+                      <Label htmlFor={key} className="text-sm flex items-center gap-2">
+                        <code className="rounded bg-muted px-1.5 py-0.5 text-xs">
+                          {`{{${key}}}`}
+                        </code>
+                        {category && (
+                          <Badge variant="outline" className="text-xs capitalize">
+                            {category}
+                          </Badge>
+                        )}
+                      </Label>
+                      <Input
+                        id={key}
+                        value={value}
+                        onChange={(e) => handleVariableChange(key, e.target.value)}
+                        placeholder={`Enter ${field || key}...`}
+                        className={cn(
+                          isEmpty && 'border-destructive focus:border-destructive'
+                        )}
+                      />
+                      {isEmpty && (
+                        <p className="text-xs text-destructive flex items-center gap-1">
+                          <AlertTriangle className="h-3 w-3" />
+                          This field is required
+                        </p>
+                      )}
+                    </div>
+                  );
+                })
+              )}
             </CardContent>
           </Card>
 

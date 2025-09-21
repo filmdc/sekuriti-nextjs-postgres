@@ -2,9 +2,19 @@
 
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { db } from '@/lib/db';
-import { runbooks, runbookSteps } from '@/lib/db/schema-ir';
+import {
+  runbooks,
+  runbookSteps,
+  runbookExecutions,
+  stepExecutions,
+  executionEvidence,
+  type RunbookExecution,
+  type StepExecution as StepExecutionType,
+  type ExecutionEvidence as ExecutionEvidenceType
+} from '@/lib/db/schema-ir';
 import { tags, taggables } from '@/lib/db/schema-tags';
-import { eq, and, or, like, desc, asc } from 'drizzle-orm';
+import { eq, and, or, like, desc, asc, count } from 'drizzle-orm';
+import { users } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
 
 export async function getRunbooks(filters?: {
@@ -435,17 +445,79 @@ export async function createExecution(data: {
     throw new Error('Unauthorized');
   }
 
-  // In a real implementation, you would create an execution record
-  // For now, return a mock execution ID
-  return `exec-${Date.now()}`;
+  const team = await getTeamForUser();
+  if (!team) {
+    throw new Error('Team not found');
+  }
+
+  // Get runbook to count steps
+  const runbook = await getRunbook(data.runbookId);
+  if (!runbook) {
+    throw new Error('Runbook not found');
+  }
+
+  // Create execution record
+  const [execution] = await db
+    .insert(runbookExecutions)
+    .values({
+      runbookId: parseInt(data.runbookId),
+      incidentId: data.incidentId ? parseInt(data.incidentId) : null,
+      organizationId: team.id,
+      executorId: user.id,
+      totalSteps: runbook.steps.length,
+      status: 'in_progress',
+    })
+    .returning();
+
+  // Create step execution records
+  const stepExecutionData = runbook.steps.map((step: any, index: number) => ({
+    executionId: execution.id,
+    stepId: step.id,
+    stepIndex: index,
+    status: index === 0 ? 'in_progress' as const : 'pending' as const,
+  }));
+
+  await db.insert(stepExecutions).values(stepExecutionData);
+
+  return execution.id.toString();
+}
+
+export async function getExecution(executionId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const execution = await db
+    .select()
+    .from(runbookExecutions)
+    .where(eq(runbookExecutions.id, parseInt(executionId)))
+    .limit(1);
+
+  if (!execution[0]) {
+    return null;
+  }
+
+  // Get step executions
+  const steps = await db
+    .select()
+    .from(stepExecutions)
+    .where(eq(stepExecutions.executionId, parseInt(executionId)))
+    .orderBy(asc(stepExecutions.stepIndex));
+
+  return {
+    ...execution[0],
+    stepExecutions: steps,
+  };
 }
 
 export async function updateExecutionStep(
   executionId: string,
   stepId: string,
   data: {
-    status: string;
+    status: 'pending' | 'in_progress' | 'completed' | 'skipped' | 'failed';
     notes?: string;
+    evidence?: Array<{ fileName: string; fileUrl: string; fileSize?: number; fileType?: string; description?: string }>;
   }
 ) {
   const user = await getUser();
@@ -453,7 +525,302 @@ export async function updateExecutionStep(
     throw new Error('Unauthorized');
   }
 
-  // In a real implementation, you would update the execution step record
-  // For now, just return success
+  const now = new Date();
+  const updateData: any = {
+    status: data.status,
+    updatedAt: now,
+  };
+
+  if (data.status === 'in_progress') {
+    updateData.startedAt = now;
+    updateData.executedBy = user.id;
+  } else if (data.status === 'completed' || data.status === 'skipped') {
+    updateData.completedAt = now;
+    updateData.executedBy = user.id;
+
+    // Calculate duration if started
+    const stepExecution = await db
+      .select()
+      .from(stepExecutions)
+      .where(
+        and(
+          eq(stepExecutions.executionId, parseInt(executionId)),
+          eq(stepExecutions.stepId, parseInt(stepId))
+        )
+      )
+      .limit(1);
+
+    if (stepExecution[0]?.startedAt) {
+      updateData.duration = Math.floor((now.getTime() - stepExecution[0].startedAt.getTime()) / 1000);
+      updateData.actualDuration = Math.floor(updateData.duration / 60);
+    }
+  }
+
+  if (data.notes) {
+    updateData.notes = data.notes;
+  }
+
+  // Update step execution
+  await db
+    .update(stepExecutions)
+    .set(updateData)
+    .where(
+      and(
+        eq(stepExecutions.executionId, parseInt(executionId)),
+        eq(stepExecutions.stepId, parseInt(stepId))
+      )
+    );
+
+  // Add evidence if provided
+  if (data.evidence && data.evidence.length > 0) {
+    const evidenceData = data.evidence.map(evidence => ({
+      executionId: parseInt(executionId),
+      stepId: parseInt(stepId),
+      fileName: evidence.fileName,
+      fileUrl: evidence.fileUrl,
+      fileSize: evidence.fileSize,
+      fileType: evidence.fileType,
+      description: evidence.description,
+      uploadedBy: user.id,
+    }));
+
+    await db.insert(executionEvidence).values(evidenceData);
+  }
+
+  // Update overall execution progress
+  const completedStepsCount = await db
+    .select({ count: eq(stepExecutions.status, 'completed') })
+    .from(stepExecutions)
+    .where(eq(stepExecutions.executionId, parseInt(executionId)));
+
+  await db
+    .update(runbookExecutions)
+    .set({
+      completedSteps: completedStepsCount.length,
+      updatedAt: now,
+    })
+    .where(eq(runbookExecutions.id, parseInt(executionId)));
+
   return true;
+}
+
+export async function pauseExecution(executionId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  await db
+    .update(runbookExecutions)
+    .set({
+      status: 'paused',
+      pausedAt: new Date(),
+      updatedAt: new Date(),
+    })
+    .where(eq(runbookExecutions.id, parseInt(executionId)));
+
+  return true;
+}
+
+export async function resumeExecution(executionId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const execution = await db
+    .select()
+    .from(runbookExecutions)
+    .where(eq(runbookExecutions.id, parseInt(executionId)))
+    .limit(1);
+
+  if (!execution[0]) {
+    throw new Error('Execution not found');
+  }
+
+  const now = new Date();
+  let pausedDuration = execution[0].pausedDuration || 0;
+
+  if (execution[0].pausedAt) {
+    pausedDuration += Math.floor((now.getTime() - execution[0].pausedAt.getTime()) / 1000);
+  }
+
+  await db
+    .update(runbookExecutions)
+    .set({
+      status: 'in_progress',
+      resumedAt: now,
+      pausedDuration,
+      updatedAt: now,
+    })
+    .where(eq(runbookExecutions.id, parseInt(executionId)));
+
+  return true;
+}
+
+export async function completeExecution(executionId: string, notes?: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const execution = await db
+    .select()
+    .from(runbookExecutions)
+    .where(eq(runbookExecutions.id, parseInt(executionId)))
+    .limit(1);
+
+  if (!execution[0]) {
+    throw new Error('Execution not found');
+  }
+
+  const now = new Date();
+  const totalDuration = Math.floor((now.getTime() - execution[0].startedAt.getTime()) / 1000);
+  const effectiveDuration = totalDuration - (execution[0].pausedDuration || 0);
+
+  await db
+    .update(runbookExecutions)
+    .set({
+      status: 'completed',
+      completedAt: now,
+      totalDuration: effectiveDuration,
+      executionNotes: notes,
+      updatedAt: now,
+    })
+    .where(eq(runbookExecutions.id, parseInt(executionId)));
+
+  return true;
+}
+
+export async function getExecutionReport(executionId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  // Get execution with runbook details
+  const execution = await db
+    .select({
+      execution: runbookExecutions,
+      runbook: runbooks,
+      executor: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(runbookExecutions)
+    .innerJoin(runbooks, eq(runbookExecutions.runbookId, runbooks.id))
+    .innerJoin(users, eq(runbookExecutions.executorId, users.id))
+    .where(eq(runbookExecutions.id, parseInt(executionId)))
+    .limit(1);
+
+  if (!execution[0]) {
+    throw new Error('Execution not found');
+  }
+
+  // Get step executions with step details
+  const stepDetails = await db
+    .select({
+      stepExecution: stepExecutions,
+      step: runbookSteps,
+      executedBy: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(stepExecutions)
+    .innerJoin(runbookSteps, eq(stepExecutions.stepId, runbookSteps.id))
+    .leftJoin(users, eq(stepExecutions.executedBy, users.id))
+    .where(eq(stepExecutions.executionId, parseInt(executionId)))
+    .orderBy(asc(stepExecutions.stepIndex));
+
+  // Get evidence
+  const evidence = await db
+    .select({
+      evidence: executionEvidence,
+      uploader: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(executionEvidence)
+    .innerJoin(users, eq(executionEvidence.uploadedBy, users.id))
+    .where(eq(executionEvidence.executionId, parseInt(executionId)));
+
+  return {
+    execution: execution[0],
+    steps: stepDetails,
+    evidence,
+    summary: {
+      totalSteps: stepDetails.length,
+      completedSteps: stepDetails.filter(s => s.stepExecution.status === 'completed').length,
+      skippedSteps: stepDetails.filter(s => s.stepExecution.status === 'skipped').length,
+      totalDuration: execution[0].execution.totalDuration,
+      evidenceCount: evidence.length,
+    },
+  };
+}
+
+export async function uploadExecutionEvidence(
+  executionId: string,
+  stepId: string,
+  evidence: {
+    fileName: string;
+    fileUrl: string;
+    fileSize?: number;
+    fileType?: string;
+    description?: string;
+  }
+) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const [newEvidence] = await db
+    .insert(executionEvidence)
+    .values({
+      executionId: parseInt(executionId),
+      stepId: parseInt(stepId),
+      fileName: evidence.fileName,
+      fileUrl: evidence.fileUrl,
+      fileSize: evidence.fileSize,
+      fileType: evidence.fileType,
+      description: evidence.description,
+      uploadedBy: user.id,
+    })
+    .returning();
+
+  return newEvidence;
+}
+
+export async function getStepEvidence(executionId: string, stepId: string) {
+  const user = await getUser();
+  if (!user) {
+    throw new Error('Unauthorized');
+  }
+
+  const evidence = await db
+    .select({
+      evidence: executionEvidence,
+      uploader: {
+        id: users.id,
+        name: users.name,
+        email: users.email,
+      },
+    })
+    .from(executionEvidence)
+    .innerJoin(users, eq(executionEvidence.uploadedBy, users.id))
+    .where(
+      and(
+        eq(executionEvidence.executionId, parseInt(executionId)),
+        eq(executionEvidence.stepId, parseInt(stepId))
+      )
+    )
+    .orderBy(desc(executionEvidence.uploadedAt));
+
+  return evidence;
 }

@@ -33,7 +33,8 @@ import {
   Users,
   Mail,
   Shield,
-  Megaphone
+  Megaphone,
+  HardDrive
 } from 'lucide-react';
 import {
   AlertDialog,
@@ -56,26 +57,49 @@ const TEMPLATE_CATEGORIES = [
 const AVAILABLE_VARIABLES = {
   incident: [
     { key: 'incident.title', label: 'Incident Title', example: 'Data Breach Investigation' },
-    { key: 'incident.severity', label: 'Severity', example: 'Critical' },
-    { key: 'incident.status', label: 'Status', example: 'Contained' },
+    { key: 'incident.severity', label: 'Severity Level', example: 'Critical' },
+    { key: 'incident.status', label: 'Current Status', example: 'Contained' },
     { key: 'incident.detectedAt', label: 'Detection Time', example: '2024-01-20 14:30 UTC' },
-    { key: 'incident.description', label: 'Description', example: 'Unauthorized access detected...' },
+    { key: 'incident.description', label: 'Incident Description', example: 'Unauthorized access detected through compromised credentials' },
+    { key: 'incident.type', label: 'Incident Type', example: 'Data Breach' },
+    { key: 'incident.impactLevel', label: 'Impact Level', example: 'High' },
+    { key: 'incident.affectedUsers', label: 'Affected Users Count', example: '1,247' },
+    { key: 'incident.containedAt', label: 'Containment Time', example: '2024-01-20 16:15 UTC' },
+    { key: 'incident.reportedBy', label: 'Reported By', example: 'Security Team' },
   ],
   organization: [
     { key: 'organization.name', label: 'Organization Name', example: 'Acme Corporation' },
-    { key: 'organization.contact', label: 'Contact Email', example: 'security@acme.com' },
+    { key: 'organization.contact', label: 'Security Contact Email', example: 'security@acme.com' },
     { key: 'organization.phone', label: 'Contact Phone', example: '+1-555-0100' },
-    { key: 'organization.website', label: 'Website', example: 'https://acme.com' },
+    { key: 'organization.website', label: 'Company Website', example: 'https://acme.com' },
+    { key: 'organization.address', label: 'Company Address', example: '123 Business Ave, City, State 12345' },
+    { key: 'organization.industry', label: 'Industry', example: 'Technology' },
+    { key: 'organization.complianceOfficer', label: 'Compliance Officer', example: 'Jane Smith' },
   ],
   user: [
-    { key: 'user.name', label: 'Current User', example: 'John Doe' },
-    { key: 'user.email', label: 'User Email', example: 'john@acme.com' },
-    { key: 'user.role', label: 'User Role', example: 'Security Analyst' },
+    { key: 'user.name', label: 'Current User Name', example: 'John Doe' },
+    { key: 'user.email', label: 'User Email', example: 'john.doe@acme.com' },
+    { key: 'user.role', label: 'User Role/Title', example: 'Senior Security Analyst' },
+    { key: 'user.department', label: 'Department', example: 'Information Security' },
+    { key: 'user.phone', label: 'User Phone', example: '+1-555-0123' },
+    { key: 'user.signature', label: 'Email Signature', example: 'Best regards,\nJohn Doe\nSenior Security Analyst' },
+  ],
+  asset: [
+    { key: 'asset.name', label: 'Asset Name', example: 'Customer Database Server' },
+    { key: 'asset.type', label: 'Asset Type', example: 'Database Server' },
+    { key: 'asset.criticality', label: 'Business Criticality', example: 'Critical' },
+    { key: 'asset.owner', label: 'Asset Owner', example: 'Data Team' },
+    { key: 'asset.location', label: 'Physical/Cloud Location', example: 'AWS US-East-1' },
+    { key: 'asset.dataClassification', label: 'Data Classification', example: 'Confidential' },
+    { key: 'asset.affectedRecords', label: 'Affected Records', example: '15,000 customer records' },
   ],
   datetime: [
-    { key: 'datetime.current', label: 'Current Date/Time', example: '2024-01-20 15:45 UTC' },
+    { key: 'datetime.current', label: 'Current Date & Time', example: '2024-01-20 15:45 UTC' },
     { key: 'datetime.date', label: 'Current Date', example: '2024-01-20' },
     { key: 'datetime.time', label: 'Current Time', example: '15:45 UTC' },
+    { key: 'datetime.timestamp', label: 'Unix Timestamp', example: '1705764300' },
+    { key: 'datetime.reportDate', label: 'Report Date', example: 'January 20, 2024' },
+    { key: 'datetime.deadline', label: 'Response Deadline', example: '72 hours from detection' },
   ],
 };
 
@@ -114,6 +138,9 @@ export default function NewCommunicationTemplatePage() {
   };
 
   const handleInsertVariable = (variable: string) => {
+    // This function is called when a variable is selected from the VariablePicker
+    // The TemplateEditor component now handles insertion internally via autocomplete
+    // But we still need this for the legacy variable picker component
     const textarea = document.getElementById('template-content') as HTMLTextAreaElement;
     if (textarea) {
       const start = textarea.selectionStart;
@@ -126,9 +153,10 @@ export default function NewCommunicationTemplatePage() {
 
       // Set cursor position after the inserted variable
       setTimeout(() => {
-        textarea.selectionStart = textarea.selectionEnd = start + variable.length + 4;
+        const newCursorPos = start + variable.length + 4;
+        textarea.setSelectionRange(newCursorPos, newCursorPos);
         textarea.focus();
-      }, 0);
+      }, 10);
     }
   };
 
@@ -333,6 +361,7 @@ export default function NewCommunicationTemplatePage() {
                     content={formData.content}
                     onChange={(content) => handleInputChange('content', content)}
                     onInsertVariable={handleInsertVariable}
+                    variables={AVAILABLE_VARIABLES}
                   />
                 </TabsContent>
                 <TabsContent value="preview">
@@ -361,18 +390,27 @@ export default function NewCommunicationTemplatePage() {
               <div className="flex gap-2">
                 <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium">Use Variables</p>
+                  <p className="font-medium">Smart Variables</p>
                   <p className="text-muted-foreground">
-                    Insert dynamic content with {'{{variable}}'} syntax
+                    Type {'{{'} to trigger autocomplete, or click variables on the right
                   </p>
                 </div>
               </div>
               <div className="flex gap-2">
                 <Info className="h-4 w-4 text-blue-500 mt-0.5" />
                 <div className="text-sm">
-                  <p className="font-medium">Markdown Support</p>
+                  <p className="font-medium">Rich Formatting</p>
                   <p className="text-muted-foreground">
-                    Format text with **bold**, *italic*, and [links](url)
+                    Use **bold**, *italic*, ## headings, and [links](url)
+                  </p>
+                </div>
+              </div>
+              <div className="flex gap-2">
+                <Info className="h-4 w-4 text-blue-500 mt-0.5" />
+                <div className="text-sm">
+                  <p className="font-medium">Live Preview</p>
+                  <p className="text-muted-foreground">
+                    Switch to preview tab to see variables replaced with examples
                   </p>
                 </div>
               </div>
@@ -381,9 +419,79 @@ export default function NewCommunicationTemplatePage() {
                 <div className="text-sm">
                   <p className="font-medium">Categories</p>
                   <p className="text-muted-foreground">
-                    Choose the right category for better organization
+                    Incident, Organization, User, Asset, and DateTime variables
                   </p>
                 </div>
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Sample Template</CardTitle>
+              <CardDescription>
+                Copy this example to get started quickly
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-2">
+                <Button
+                  variant="outline"
+                  className="w-full text-left justify-start"
+                  onClick={() => {
+                    const sampleTemplate = `## Security Incident Notification
+
+Dear {{customer.name}},
+
+We are writing to inform you about a **{{incident.severity}}** security incident: **{{incident.title}}**.
+
+### Incident Details
+- **Type:** {{incident.type}}
+- **Status:** {{incident.status}}
+- **Detected:** {{incident.detectedAt}}
+- **Impact Level:** {{incident.impactLevel}}
+
+### Description
+{{incident.description}}
+
+### Affected Systems
+- **Asset:** {{asset.name}} ({{asset.type}})
+- **Location:** {{asset.location}}
+- **Data Classification:** {{asset.dataClassification}}
+- **Records Affected:** {{asset.affectedRecords}}
+
+### Our Response
+We detected this incident at {{incident.detectedAt}} and successfully contained it by {{incident.containedAt}}. Our security team has implemented additional protective measures.
+
+### What You Should Do
+1. **Change your password** immediately
+2. **Enable two-factor authentication** if not already active
+3. **Monitor your account** for suspicious activity
+4. **Contact us** if you notice anything unusual
+
+### Contact Information
+If you have any questions or concerns:
+- **Email:** {{organization.contact}}
+- **Phone:** {{organization.phone}}
+- **Website:** {{organization.website}}
+
+We sincerely apologize for any inconvenience and appreciate your understanding.
+
+{{user.signature}}
+
+---
+**{{organization.name}}** | {{organization.address}}
+*Report generated on {{datetime.reportDate}}*`;
+                    handleInputChange('content', sampleTemplate);
+                    handleInputChange('subject', 'Security Incident Notification - {{incident.title}}');
+                    handleInputChange('title', 'Comprehensive Security Incident Template');
+                  }}
+                >
+                  Load Sample Template
+                </Button>
+                <p className="text-xs text-muted-foreground">
+                  This template demonstrates all variable categories and markdown formatting
+                </p>
               </div>
             </CardContent>
           </Card>

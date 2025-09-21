@@ -311,6 +311,93 @@ export const exerciseCompletions = pgTable('exercise_completions', {
   certificateUrl: text('certificate_url'),
 });
 
+export const executionStatusEnum = pgEnum('execution_status', [
+  'in_progress',
+  'paused',
+  'completed',
+  'failed',
+  'cancelled'
+]);
+
+export const stepExecutionStatusEnum = pgEnum('step_execution_status', [
+  'pending',
+  'in_progress',
+  'completed',
+  'skipped',
+  'failed'
+]);
+
+export const runbookExecutions = pgTable('runbook_executions', {
+  id: serial('id').primaryKey(),
+  runbookId: integer('runbook_id')
+    .notNull()
+    .references(() => runbooks.id),
+  incidentId: integer('incident_id')
+    .references(() => incidents.id),
+  organizationId: integer('organization_id')
+    .notNull()
+    .references(() => teams.id),
+  executorId: integer('executor_id')
+    .notNull()
+    .references(() => users.id),
+  status: executionStatusEnum('status').notNull().default('in_progress'),
+  startedAt: timestamp('started_at').notNull().defaultNow(),
+  pausedAt: timestamp('paused_at'),
+  resumedAt: timestamp('resumed_at'),
+  completedAt: timestamp('completed_at'),
+  totalDuration: integer('total_duration'), // in seconds
+  pausedDuration: integer('paused_duration').default(0), // in seconds
+  currentStepIndex: integer('current_step_index').default(0),
+  completedSteps: integer('completed_steps').default(0),
+  totalSteps: integer('total_steps').notNull(),
+  executionNotes: text('execution_notes'),
+  failureReason: text('failure_reason'),
+  metadata: jsonb('metadata').default({}),
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const stepExecutions = pgTable('step_executions', {
+  id: serial('id').primaryKey(),
+  executionId: integer('execution_id')
+    .notNull()
+    .references(() => runbookExecutions.id, { onDelete: 'cascade' }),
+  stepId: integer('step_id')
+    .notNull()
+    .references(() => runbookSteps.id),
+  stepIndex: integer('step_index').notNull(),
+  status: stepExecutionStatusEnum('status').notNull().default('pending'),
+  startedAt: timestamp('started_at'),
+  completedAt: timestamp('completed_at'),
+  duration: integer('duration'), // in seconds
+  executedBy: integer('executed_by')
+    .references(() => users.id),
+  notes: text('notes'),
+  evidenceUrls: jsonb('evidence_urls').default([]),
+  errorMessage: text('error_message'),
+  actualDuration: integer('actual_duration'), // in minutes
+  createdAt: timestamp('created_at').notNull().defaultNow(),
+  updatedAt: timestamp('updated_at').notNull().defaultNow(),
+});
+
+export const executionEvidence = pgTable('execution_evidence', {
+  id: serial('id').primaryKey(),
+  executionId: integer('execution_id')
+    .notNull()
+    .references(() => runbookExecutions.id, { onDelete: 'cascade' }),
+  stepId: integer('step_id')
+    .references(() => runbookSteps.id),
+  fileName: varchar('file_name', { length: 255 }).notNull(),
+  fileUrl: text('file_url').notNull(),
+  fileSize: integer('file_size'),
+  fileType: varchar('file_type', { length: 100 }),
+  description: text('description'),
+  uploadedBy: integer('uploaded_by')
+    .notNull()
+    .references(() => users.id),
+  uploadedAt: timestamp('uploaded_at').notNull().defaultNow(),
+});
+
 export const twoFactorCodes = pgTable('two_factor_codes', {
   id: serial('id').primaryKey(),
   userId: integer('user_id')
@@ -396,6 +483,57 @@ export const tabletopExercisesRelations = relations(tabletopExercises, ({ one, m
   completions: many(exerciseCompletions),
 }));
 
+export const runbookExecutionsRelations = relations(runbookExecutions, ({ one, many }) => ({
+  runbook: one(runbooks, {
+    fields: [runbookExecutions.runbookId],
+    references: [runbooks.id],
+  }),
+  incident: one(incidents, {
+    fields: [runbookExecutions.incidentId],
+    references: [incidents.id],
+  }),
+  organization: one(teams, {
+    fields: [runbookExecutions.organizationId],
+    references: [teams.id],
+  }),
+  executor: one(users, {
+    fields: [runbookExecutions.executorId],
+    references: [users.id],
+  }),
+  stepExecutions: many(stepExecutions),
+  evidence: many(executionEvidence),
+}));
+
+export const stepExecutionsRelations = relations(stepExecutions, ({ one }) => ({
+  execution: one(runbookExecutions, {
+    fields: [stepExecutions.executionId],
+    references: [runbookExecutions.id],
+  }),
+  step: one(runbookSteps, {
+    fields: [stepExecutions.stepId],
+    references: [runbookSteps.id],
+  }),
+  executedBy: one(users, {
+    fields: [stepExecutions.executedBy],
+    references: [users.id],
+  }),
+}));
+
+export const executionEvidenceRelations = relations(executionEvidence, ({ one }) => ({
+  execution: one(runbookExecutions, {
+    fields: [executionEvidence.executionId],
+    references: [runbookExecutions.id],
+  }),
+  step: one(runbookSteps, {
+    fields: [executionEvidence.stepId],
+    references: [runbookSteps.id],
+  }),
+  uploader: one(users, {
+    fields: [executionEvidence.uploadedBy],
+    references: [users.id],
+  }),
+}));
+
 // Type exports
 export type Incident = typeof incidents.$inferSelect;
 export type NewIncident = typeof incidents.$inferInsert;
@@ -415,3 +553,9 @@ export type ExerciseQuestion = typeof exerciseQuestions.$inferSelect;
 export type NewExerciseQuestion = typeof exerciseQuestions.$inferInsert;
 export type ExerciseCompletion = typeof exerciseCompletions.$inferSelect;
 export type NewExerciseCompletion = typeof exerciseCompletions.$inferInsert;
+export type RunbookExecution = typeof runbookExecutions.$inferSelect;
+export type NewRunbookExecution = typeof runbookExecutions.$inferInsert;
+export type StepExecution = typeof stepExecutions.$inferSelect;
+export type NewStepExecution = typeof stepExecutions.$inferInsert;
+export type ExecutionEvidence = typeof executionEvidence.$inferSelect;
+export type NewExecutionEvidence = typeof executionEvidence.$inferInsert;

@@ -1,3 +1,5 @@
+'use client';
+
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -9,7 +11,8 @@ import {
   Calendar,
   Copy,
   Plus,
-  User
+  User,
+  HardDrive
 } from 'lucide-react';
 import {
   Tooltip,
@@ -36,6 +39,7 @@ const CATEGORY_ICONS = {
   incident: AlertTriangle,
   organization: Building,
   user: User,
+  asset: HardDrive,
   datetime: Calendar,
 };
 
@@ -59,6 +63,9 @@ export function VariablePicker({
 
   const handleInsert = (variable: string) => {
     onSelectVariable(variable);
+    // Visual feedback for insertion
+    setCopiedVar(variable);
+    setTimeout(() => setCopiedVar(null), 1000);
   };
 
   return (
@@ -71,7 +78,7 @@ export function VariablePicker({
       </CardHeader>
       <CardContent className="p-0">
         <Tabs value={activeTab} onValueChange={setActiveTab}>
-          <TabsList className="grid w-full grid-cols-4 rounded-none">
+          <TabsList className="grid w-full grid-cols-5 rounded-none">
             {Object.keys(variables).map((category) => {
               const Icon = CATEGORY_ICONS[category as keyof typeof CATEGORY_ICONS];
               return (
@@ -129,14 +136,27 @@ export function VariablePicker({
                             Example: {variable.example}
                           </p>
                         </div>
-                        <Button
-                          variant="ghost"
-                          size="icon"
-                          className="ml-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
-                          onClick={() => handleInsert(variable.key)}
-                        >
-                          <Plus className="h-3.5 w-3.5" />
-                        </Button>
+                        <TooltipProvider>
+                          <Tooltip>
+                            <TooltipTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="ml-2 h-7 w-7 opacity-0 transition-opacity group-hover:opacity-100"
+                                onClick={() => handleInsert(variable.key)}
+                              >
+                                {copiedVar === variable.key ? (
+                                  <span className="text-xs text-green-600">✓</span>
+                                ) : (
+                                  <Plus className="h-3.5 w-3.5" />
+                                )}
+                              </Button>
+                            </TooltipTrigger>
+                            <TooltipContent>
+                              <p>{copiedVar === variable.key ? 'Inserted!' : 'Insert variable'}</p>
+                            </TooltipContent>
+                          </Tooltip>
+                        </TooltipProvider>
                       </div>
                     </div>
                   ))}
@@ -147,20 +167,22 @@ export function VariablePicker({
         </Tabs>
 
         <div className="border-t p-4">
-          <div className="space-y-2">
-            <h4 className="text-sm font-medium">Custom Variables</h4>
-            <p className="text-xs text-muted-foreground">
-              You can also create custom variables like {'{{custom.name}}'} and fill them when using the template.
-            </p>
-            <Button
-              variant="outline"
-              size="sm"
-              className="w-full"
-              onClick={() => handleInsert('custom.variable')}
-            >
-              <Plus className="mr-2 h-3 w-3" />
-              Add Custom Variable
-            </Button>
+          <div className="space-y-3">
+            <h4 className="text-sm font-medium">Tips</h4>
+            <div className="space-y-2 text-xs text-muted-foreground">
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>Click any variable above to insert it at cursor position</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>Type <code className="bg-muted px-1 rounded">{'{{'}}</code> in the editor to trigger autocomplete</span>
+              </div>
+              <div className="flex items-start gap-2">
+                <span className="text-blue-500 mt-0.5">•</span>
+                <span>Create custom variables like <code className="bg-muted px-1 rounded">{'{{custom.name}}'}</code></span>
+              </div>
+            </div>
           </div>
         </div>
       </CardContent>

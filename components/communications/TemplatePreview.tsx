@@ -1,6 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
+import { extractVariables, replaceVariables, getDefaultVariableValues, formatVariableForDisplay } from '@/lib/template-variables';
 import { Card, CardContent } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Separator } from '@/components/ui/separator';
@@ -38,46 +39,84 @@ export function TemplatePreview({
   }, [content, subject, variables]);
 
   const processTemplateContent = () => {
-    let processedText = content;
-    let processedSubj = subject || '';
-    const foundVars: string[] = [];
+    // Extract all variables from content and subject
+    const foundVars = extractVariables(content, subject);
+    setHighlightedVars(foundVars);
 
+    // Build variable data map from available variables
+    const variableDataMap: Record<string, string> = {};
     if (variables) {
-      // Replace variables with example values
       Object.entries(variables).forEach(([category, vars]) => {
         vars.forEach((variable) => {
-          const regex = new RegExp(`{{\\s*${variable.key}\\s*}}`, 'g');
-          const replacement = showVariables
-            ? `<mark class="bg-yellow-200 dark:bg-yellow-900/50 px-1 rounded">${variable.example}</mark>`
-            : variable.example;
-
-          if (processedText.match(regex)) {
-            foundVars.push(variable.key);
-            processedText = processedText.replace(regex, replacement);
-          }
-          if (processedSubj.match(regex)) {
-            processedSubj = processedSubj.replace(regex, variable.example);
-          }
+          variableDataMap[variable.key] = variable.example;
         });
       });
     }
 
-    // Highlight any remaining unprocessed variables
-    const remainingVarRegex = /{{([^}]+)}}/g;
-    if (showVariables) {
-      processedText = processedText.replace(
-        remainingVarRegex,
-        '<mark class="bg-red-200 dark:bg-red-900/50 px-1 rounded">[Missing: $1]</mark>'
-      );
-      processedSubj = processedSubj.replace(
-        remainingVarRegex,
-        '[Missing: $1]'
-      );
-    }
+    // Process content
+    let processedText = content;
+    let processedSubj = subject || '';
+
+    foundVars.forEach(variable => {
+      const regex = new RegExp(`\\{\\{\\s*${escapeRegex(variable)}\\s*\\}\\}`, 'g');
+      const exampleValue = variableDataMap[variable];
+
+      if (exampleValue) {
+        const safeExampleValue = escapeHtml(exampleValue);
+        const replacement = showVariables
+          ? `<span class="bg-yellow-100 dark:bg-yellow-900/30 px-1 py-0.5 rounded text-yellow-800 dark:text-yellow-200 font-medium border border-yellow-200 dark:border-yellow-800">${safeExampleValue}</span>`
+          : safeExampleValue;
+
+        processedText = processedText.replace(regex, replacement);
+        processedSubj = processedSubj.replace(regex, safeExampleValue);
+      } else {
+        // Variable not found in available variables
+        const missingText = `[Missing: ${variable}]`;
+        if (showVariables) {
+          const missingReplacement = `<span class="bg-red-100 dark:bg-red-900/30 px-1 py-0.5 rounded text-red-800 dark:text-red-200 font-medium border border-red-200 dark:border-red-800">${missingText}</span>`;
+          processedText = processedText.replace(regex, missingReplacement);
+          processedSubj = processedSubj.replace(regex, missingText);
+        } else {
+          processedText = processedText.replace(regex, missingText);
+          processedSubj = processedSubj.replace(regex, missingText);
+        }
+      }
+    });
 
     setProcessedContent(processedText);
     setProcessedSubject(processedSubj);
-    setHighlightedVars(foundVars);
+  };
+
+  const escapeHtml = (text: string): string => {
+    const div = document.createElement('div');
+    div.textContent = text;
+    return div.innerHTML;
+  };
+
+  const escapeRegex = (string: string) => {
+    return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  };
+
+  const processMarkdown = (text: string): string => {
+    return text
+      // Process markdown formatting with better regex
+      .replace(/\*\*([^*]+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
+      .replace(/(?<!\*)\*([^*\n]+?)\*(?!\*)/g, '<em class="italic">$1</em>')
+      .replace(/\[([^\]]+?)\]\(([^)]+?)\)/g, '<a href="$2" class="text-primary underline hover:text-primary/80" target="_blank" rel="noopener noreferrer">$1</a>')
+      .replace(/`([^`\n]+?)`/g, '<code class="bg-muted px-1 py-0.5 rounded text-sm font-mono">$1</code>')
+      // Process headings (must be at start of line)
+      .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mb-4 mt-6 first:mt-0">$1</h1>')
+      .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mb-3 mt-5 first:mt-0">$1</h2>')
+      .replace(/^### (.+)$/gm, '<h3 class="text-lg font-medium mb-2 mt-4 first:mt-0">$1</h3>')
+      // Process lists with proper HTML structure
+      .replace(/^- (.+)$/gm, '<div class="flex items-start gap-2 my-1"><span class="text-muted-foreground mt-1.5 text-xs w-2 flex-shrink-0">•</span><span class="flex-1">$1</span></div>')
+      .replace(/^(\d+)\. (.+)$/gm, '<div class="flex items-start gap-2 my-1"><span class="text-muted-foreground mt-1.5 text-xs font-medium min-w-[1.5rem] flex-shrink-0">$1.</span><span class="flex-1">$2</span></div>')
+      // Process quotes
+      .replace(/^> (.+)$/gm, '<blockquote class="border-l-4 border-muted pl-4 py-2 my-3 italic text-muted-foreground bg-muted/30 rounded-r">$1</blockquote>')
+      // Process horizontal rules
+      .replace(/^---$/gm, '<hr class="my-6 border-border" />')
+      // Convert line breaks
+      .replace(/\n/g, '<br />');
   };
 
   return (
@@ -114,15 +153,7 @@ export function TemplatePreview({
             <div
               className="whitespace-pre-wrap leading-relaxed"
               dangerouslySetInnerHTML={{
-                __html: processedContent
-                  .replace(/\*\*(.+?)\*\*/g, '<strong class="font-semibold">$1</strong>')
-                  .replace(/\*(.+?)\*/g, '<em class="italic">$1</em>')
-                  .replace(/\[(.+?)\]\((.+?)\)/g, '<a href="$2" class="text-primary underline" target="_blank">$1</a>')
-                  .replace(/^# (.+)$/gm, '<h1 class="text-2xl font-bold mb-4">$1</h1>')
-                  .replace(/^## (.+)$/gm, '<h2 class="text-xl font-semibold mb-3">$1</h2>')
-                  .replace(/^- (.+)$/gm, '<li class="ml-6">$1</li>')
-                  .replace(/^\d+\. (.+)$/gm, '<li class="ml-6">$1</li>')
-                  .replace(/\n/g, '<br />')
+                __html: processMarkdown(processedContent)
               }}
             />
           </div>

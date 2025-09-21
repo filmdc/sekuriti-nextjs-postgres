@@ -1,10 +1,12 @@
 import { notFound } from 'next/navigation';
 import { getUser } from '@/lib/db/queries';
 import { getAssetById } from '@/lib/db/queries-assets';
+import { getTagsByOrganization } from '@/lib/db/queries-tags';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
+import { TagManager } from '@/components/assets/tag-manager';
 import {
   ArrowLeft,
   Edit,
@@ -28,6 +30,7 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { deleteAssetAction } from '@/lib/actions/assets';
+import { AssetDetailClient } from './asset-detail-client';
 
 const assetTypeIcons = {
   hardware: HardDrive,
@@ -61,7 +64,10 @@ export default async function AssetDetailPage({
     );
   }
 
-  const assetData = await getAssetById(parseInt(params.id), user.teamId);
+  const [assetData, availableTags] = await Promise.all([
+    getAssetById(parseInt(params.id), user.teamId),
+    getTagsByOrganization(user.teamId)
+  ]);
 
   if (!assetData) {
     notFound();
@@ -306,60 +312,21 @@ export default async function AssetDetailPage({
           </CardContent>
         </Card>
 
-        {/* Organization */}
+        {/* Tags Management */}
         <Card>
           <CardHeader>
-            <CardTitle>Organization</CardTitle>
+            <CardTitle>Tags & Organization</CardTitle>
+            <CardDescription>
+              Manage tags and group memberships for this asset
+            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {/* Tags */}
-            {tags && tags.length > 0 ? (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Tags</p>
-                <div className="flex flex-wrap gap-2">
-                  {tags.map((tag) => (
-                    <Badge
-                      key={tag.id}
-                      variant="outline"
-                      style={{
-                        backgroundColor: `${tag.color}20`,
-                        borderColor: tag.color,
-                        color: tag.color
-                      }}
-                    >
-                      <Tag className="h-3 w-3 mr-1" />
-                      {tag.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">No tags assigned</p>
-            )}
-
-            {/* Groups */}
-            {groups && groups.length > 0 ? (
-              <div>
-                <p className="text-sm font-medium text-muted-foreground mb-2">Groups</p>
-                <div className="flex flex-wrap gap-2">
-                  {groups.map((group) => (
-                    <Badge
-                      key={group.id}
-                      variant="secondary"
-                      style={group.color ? {
-                        backgroundColor: `${group.color}20`,
-                        borderColor: group.color
-                      } : {}}
-                    >
-                      {group.icon && <span className="mr-1">{group.icon}</span>}
-                      {group.name}
-                    </Badge>
-                  ))}
-                </div>
-              </div>
-            ) : (
-              <p className="text-sm text-muted-foreground">Not assigned to any groups</p>
-            )}
+          <CardContent>
+            <AssetDetailClient
+              asset={asset}
+              initialTags={tags || []}
+              availableTags={availableTags}
+              groups={groups || []}
+            />
           </CardContent>
         </Card>
 

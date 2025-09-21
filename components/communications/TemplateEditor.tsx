@@ -1,6 +1,6 @@
 'use client';
 
-import { useRef, useEffect } from 'react';
+import { useRef, useEffect, useState } from 'react';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
@@ -24,11 +24,19 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { cn } from '@/lib/utils';
+import { VariableAutocomplete } from './VariableAutocomplete';
+
+interface Variable {
+  key: string;
+  label: string;
+  example: string;
+}
 
 interface TemplateEditorProps {
   content: string;
   onChange: (content: string) => void;
   onInsertVariable?: (variable: string) => void;
+  variables?: Record<string, Variable[]>;
   className?: string;
 }
 
@@ -36,9 +44,13 @@ export function TemplateEditor({
   content,
   onChange,
   onInsertVariable,
+  variables,
   className,
 }: TemplateEditorProps) {
   const textareaRef = useRef<HTMLTextAreaElement>(null);
+  const [showAutocomplete, setShowAutocomplete] = useState(false);
+  const [autocompletePosition, setAutocompletePosition] = useState({ top: 0, left: 0 });
+  const [autocompleteQuery, setAutocompleteQuery] = useState('');
 
   const insertMarkdown = (before: string, after: string = '', placeholder: string = '') => {
     const textarea = textareaRef.current;
@@ -120,6 +132,94 @@ export function TemplateEditor({
   ];
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    // Handle autocomplete trigger
+    if (e.key === '{' && !showAutocomplete && variables) {
+      const textarea = textareaRef.current;
+      if (textarea) {
+        const cursorPos = textarea.selectionStart;
+        const textBefore = content.substring(0, cursorPos);
+
+        // Check if this is the second '{' (starting a variable)
+        if (textBefore.endsWith('{')) {
+          // Calculate position for autocomplete dropdown more accurately
+          const rect = textarea.getBoundingClientRect();
+          const computedStyle = window.getComputedStyle(textarea);
+          const lineHeight = parseFloat(computedStyle.lineHeight) || 20;
+
+          // Get text area metrics
+          const paddingTop = parseFloat(computedStyle.paddingTop) || 0;
+          const paddingLeft = parseFloat(computedStyle.paddingLeft) || 0;
+
+          // Calculate cursor position
+          const textBeforeCursor = content.substring(0, cursorPos + 1); // +1 for the character being typed
+          const lines = textBeforeCursor.split('\n');
+          const currentLineIndex = lines.length - 1;
+          const currentLineText = lines[currentLineIndex];
+
+          // Create a temporary span to measure text width
+          const tempSpan = document.createElement('span');
+          tempSpan.style.font = computedStyle.font;
+          tempSpan.style.visibility = 'hidden';
+          tempSpan.style.position = 'absolute';
+          tempSpan.textContent = currentLineText;
+          document.body.appendChild(tempSpan);
+          const textWidth = tempSpan.offsetWidth;
+          document.body.removeChild(tempSpan);
+
+          setAutocompletePosition({
+            top: rect.top + paddingTop + (currentLineIndex * lineHeight) + lineHeight + 5,
+            left: Math.min(rect.left + paddingLeft + textWidth, window.innerWidth - 320) // Ensure it doesn't go off screen
+          });
+          setAutocompleteQuery('');
+          setShowAutocomplete(true);
+        }
+      }
+    }
+
+    // Handle autocomplete closing
+    if (showAutocomplete) {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        setShowAutocomplete(false);
+      } else if (e.key === '}') {
+        // Check if we're completing a variable
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const cursorPos = textarea.selectionStart;
+          const textBefore = content.substring(0, cursorPos);
+          const lastOpenBrace = textBefore.lastIndexOf('{{');
+
+          if (lastOpenBrace !== -1) {
+            const currentVar = textBefore.substring(lastOpenBrace + 2);
+            // If we have a valid variable pattern, close autocomplete
+            if (currentVar && !currentVar.includes('}')) {
+              setTimeout(() => setShowAutocomplete(false), 100);
+            }
+          }
+        }
+      } else if (e.key === ' ') {
+        // Close on space (variables shouldn't have spaces)
+        setShowAutocomplete(false);
+      }
+    }
+
+    // Update autocomplete query while typing
+    if (showAutocomplete && e.key.length === 1 && e.key !== '{' && e.key !== '}') {
+      setTimeout(() => {
+        const textarea = textareaRef.current;
+        if (textarea) {
+          const cursorPos = textarea.selectionStart;
+          const textBefore = content.substring(0, cursorPos); // Current content without the new character
+          const lastOpenBrace = textBefore.lastIndexOf('{{');
+
+          if (lastOpenBrace !== -1) {
+            const query = textBefore.substring(lastOpenBrace + 2) + e.key;
+            setAutocompleteQuery(query);
+          }
+        }
+      }, 0);
+    }
+
     // Tab key inserts 2 spaces
     if (e.key === 'Tab') {
       e.preventDefault();
@@ -139,8 +239,39 @@ export function TemplateEditor({
     }
   };
 
+  const handleAutocompleteSelect = (variableKey: string) => {
+    const textarea = textareaRef.current;
+    if (textarea) {
+      const cursorPos = textarea.selectionStart;
+      const textBefore = content.substring(0, cursorPos);
+      const textAfter = content.substring(cursorPos);
+
+      // Find the start of the current variable being typed
+      const lastOpenBrace = textBefore.lastIndexOf('{{');
+
+      if (lastOpenBrace !== -1) {
+        const beforeVariable = content.substring(0, lastOpenBrace);
+        const newContent = beforeVariable + `{{${variableKey}}}` + textAfter;
+        onChange(newContent);
+
+        // Set cursor position after the inserted variable
+        setTimeout(() => {
+          const newCursorPos = lastOpenBrace + variableKey.length + 4;
+          textarea.setSelectionRange(newCursorPos, newCursorPos);
+          textarea.focus();
+        }, 0);
+      }
+    }
+
+    setShowAutocomplete(false);
+  };
+
+  const handleAutocompleteClose = () => {
+    setShowAutocomplete(false);
+  };
+
   return (
-    <div className={cn('space-y-2', className)}>
+    <div className={cn('space-y-2 relative', className)}>
       <div className="flex items-center justify-between">
         <Label htmlFor="template-content">Content *</Label>
         <TooltipProvider>
@@ -186,9 +317,15 @@ export function TemplateEditor({
                       size="icon"
                       className="h-7 w-7"
                       onClick={() => {
-                        // This would typically open a variable picker modal
-                        // For now, we'll insert a placeholder
-                        insertMarkdown('{{', '}}', 'variable.name');
+                        // Trigger variable picker if callback is provided
+                        if (onInsertVariable) {
+                          // Focus the textarea to show cursor position
+                          textareaRef.current?.focus();
+                          // The parent component will handle opening the variable picker
+                          // and call onInsertVariable when a variable is selected
+                        } else {
+                          insertMarkdown('{{', '}}', 'variable.name');
+                        }
                       }}
                     >
                       <Variable className="h-3.5 w-3.5" />
@@ -222,8 +359,21 @@ Insert variables with {{variable.name}} syntax"
         <span>•</span>
         <span>Variables: {'{{variable.name}}'}</span>
         <span>•</span>
+        <span>Type {'{{'} to insert variables</span>
+        <span>•</span>
         <span>Ctrl+B for bold, Ctrl+I for italic</span>
       </div>
+
+      {variables && (
+        <VariableAutocomplete
+          variables={variables}
+          isOpen={showAutocomplete}
+          onSelect={handleAutocompleteSelect}
+          onClose={handleAutocompleteClose}
+          searchQuery={autocompleteQuery}
+          position={autocompletePosition}
+        />
+      )}
     </div>
   );
 }

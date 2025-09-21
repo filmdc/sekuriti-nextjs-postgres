@@ -18,6 +18,11 @@ import {
   SkipForward,
   RefreshCw,
   BookOpen,
+  Upload,
+  Eye,
+  Save,
+  Flag,
+  Timer,
 } from 'lucide-react';
 import Link from 'next/link';
 import { Button } from '@/components/ui/button';
@@ -44,7 +49,22 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Separator } from '@/components/ui/separator';
-import { getRunbook, createExecution, updateExecutionStep } from '@/app/actions/runbooks';
+import {
+  getRunbook,
+  createExecution,
+  updateExecutionStep,
+  pauseExecution,
+  resumeExecution,
+  completeExecution,
+  getExecutionReport,
+  uploadExecutionEvidence,
+  getStepEvidence,
+} from '@/app/actions/runbooks';
+import { EvidenceUpload } from '@/components/runbooks/evidence-upload';
+import { StepTimer } from '@/components/runbooks/step-timer';
+import { ExecutionReport } from '@/components/runbooks/execution-report';
+import { MobileExecution } from '@/components/runbooks/mobile-execution';
+import { useIsMobile } from '@/hooks/use-mobile';
 import { toast } from '@/components/ui/toast';
 
 const PHASES = [
@@ -70,7 +90,7 @@ interface RunbookStep {
 
 interface StepExecution {
   stepId: string;
-  status: 'pending' | 'in_progress' | 'completed' | 'skipped';
+  status: 'pending' | 'in_progress' | 'completed' | 'skipped' | 'failed';
   startedAt?: Date;
   completedAt?: Date;
   executedBy?: string;
@@ -94,8 +114,13 @@ export default function ExecuteRunbookPage({
   const [stepExecutions, setStepExecutions] = useState<Map<string, StepExecution>>(new Map());
   const [isPaused, setIsPaused] = useState(false);
   const [showNotesDialog, setShowNotesDialog] = useState(false);
+  const [showEvidenceDialog, setShowEvidenceDialog] = useState(false);
+  const [showReportDialog, setShowReportDialog] = useState(false);
   const [currentStepNotes, setCurrentStepNotes] = useState('');
   const [elapsedTime, setElapsedTime] = useState(0);
+  const [executionReport, setExecutionReport] = useState<any>(null);
+  const [stepEvidence, setStepEvidence] = useState<any[]>([]);
+  const [isLoadingReport, setIsLoadingReport] = useState(false);
 
   // Timer effect
   useEffect(() => {
@@ -111,6 +136,12 @@ export default function ExecuteRunbookPage({
   useEffect(() => {
     loadRunbook();
   }, [params.id]);
+
+  useEffect(() => {
+    if (currentStep && executionId) {
+      loadStepEvidence(currentStep.id.toString());
+    }
+  }, [currentStepIndex, executionId]);
 
   const loadRunbook = async () => {
     setIsLoading(true);
@@ -150,7 +181,7 @@ export default function ExecuteRunbookPage({
       setExecutionStartTime(new Date());
 
       // Mark first step as in progress
-      const firstStep = runbook.steps[0];
+      const firstStep = runbook.steps?.[0];
       if (firstStep) {
         updateStepStatus(firstStep.id, 'in_progress');
       }
@@ -162,7 +193,83 @@ export default function ExecuteRunbookPage({
     }
   };
 
-  const updateStepStatus = (stepId: string, status: StepExecution['status'], notes?: string) => {
+  const handlePauseResume = async () => {
+    if (!executionId) return;
+
+    try {
+      if (isPaused) {
+        await resumeExecution(executionId);
+        setIsPaused(false);
+        toast.success('Execution resumed');
+      } else {
+        await pauseExecution(executionId);
+        setIsPaused(true);
+        toast.success('Execution paused');
+      }
+    } catch (error) {
+      toast.error('Failed to update execution status');
+      console.error(error);
+    }
+  };
+
+  const handleCompleteExecution = async () => {
+    if (!executionId) return;
+
+    try {
+      await completeExecution(executionId, currentStepNotes);
+      await loadExecutionReport();
+      setShowReportDialog(true);
+      toast.success('Runbook execution completed!');
+    } catch (error) {
+      toast.error('Failed to complete execution');
+      console.error(error);
+    }
+  };
+
+  const loadExecutionReport = async () => {
+    if (!executionId) return;
+
+    setIsLoadingReport(true);
+    try {
+      const report = await getExecutionReport(executionId);
+      setExecutionReport(report);
+    } catch (error) {
+      toast.error('Failed to load execution report');
+      console.error(error);
+    } finally {
+      setIsLoadingReport(false);
+    }
+  };
+
+  const loadStepEvidence = async (stepId: string) => {
+    if (!executionId) return;
+
+    try {
+      const evidence = await getStepEvidence(executionId, stepId);
+      setStepEvidence(evidence || []);
+    } catch (error) {
+      console.error('Failed to load step evidence:', error);
+      setStepEvidence([]);
+    }
+  };
+
+  const handleEvidenceUpload = async (evidence: any[]) => {
+    if (!executionId || !currentStep) return;
+
+    try {
+      await updateExecutionStep(executionId, currentStep.id.toString(), {
+        status: stepExecutions.get(currentStep.id)?.status || 'in_progress',
+        evidence,
+      });
+      await loadStepEvidence(currentStep.id.toString());
+      toast.success('Evidence uploaded successfully');
+    } catch (error) {
+      toast.error('Failed to upload evidence');
+      console.error(error);
+    }
+  };
+
+  const updateStepStatus = async (stepId: string, status: StepExecution['status'], notes?: string) => {
     setStepExecutions(prev => {
       const updated = new Map(prev);
       const execution = updated.get(stepId);
@@ -187,39 +294,50 @@ export default function ExecuteRunbookPage({
 
     // Save to backend
     if (executionId) {
-      updateExecutionStep(executionId, stepId, { status, notes });
+      try {
+        await updateExecutionStep(executionId, stepId, { status, notes });
+      } catch (error) {
+        toast.error('Failed to update step status');
+        console.error(error);
+      }
     }
   };
 
   const completeCurrentStep = () => {
-    const currentStep = runbook.steps[currentStepIndex];
+    const currentStep = runbook.steps?.[currentStepIndex];
     if (currentStep) {
       updateStepStatus(currentStep.id, 'completed', currentStepNotes);
       setCurrentStepNotes('');
 
       // Move to next step
-      if (currentStepIndex < runbook.steps.length - 1) {
+      if (currentStepIndex < (runbook.steps?.length || 1) - 1) {
         const nextIndex = currentStepIndex + 1;
         setCurrentStepIndex(nextIndex);
-        updateStepStatus(runbook.steps[nextIndex].id, 'in_progress');
+        const nextStep = runbook.steps?.[nextIndex];
+        if (nextStep) {
+          updateStepStatus(nextStep.id, 'in_progress');
+        }
       } else {
         // All steps completed
-        toast.success('Runbook execution completed!');
+        handleCompleteExecution();
       }
     }
   };
 
   const skipCurrentStep = () => {
-    const currentStep = runbook.steps[currentStepIndex];
+    const currentStep = runbook.steps?.[currentStepIndex];
     if (currentStep) {
       updateStepStatus(currentStep.id, 'skipped', currentStepNotes);
       setCurrentStepNotes('');
 
       // Move to next step
-      if (currentStepIndex < runbook.steps.length - 1) {
+      if (currentStepIndex < (runbook.steps?.length || 1) - 1) {
         const nextIndex = currentStepIndex + 1;
         setCurrentStepIndex(nextIndex);
-        updateStepStatus(runbook.steps[nextIndex].id, 'in_progress');
+        const nextStep = runbook.steps?.[nextIndex];
+        if (nextStep) {
+          updateStepStatus(nextStep.id, 'in_progress');
+        }
       }
     }
   };
@@ -246,11 +364,11 @@ export default function ExecuteRunbookPage({
     );
   }
 
-  const currentStep = runbook.steps[currentStepIndex];
+  const currentStep = runbook.steps?.[currentStepIndex];
   const completedSteps = Array.from(stepExecutions.values()).filter(
     e => e.status === 'completed'
   ).length;
-  const progressPercentage = (completedSteps / runbook.steps.length) * 100;
+  const progressPercentage = runbook.steps?.length ? (completedSteps / runbook.steps.length) * 100 : 0;
 
   // Group steps by phase for sidebar
   const stepsByPhase = runbook.steps?.reduce((acc: any, step: RunbookStep, index: number) => {
@@ -275,6 +393,29 @@ export default function ExecuteRunbookPage({
     { label: runbook.title, href: `/runbooks/${params.id}` },
     { label: 'Execute' }
   ];
+
+  // Mobile responsive check
+  const isMobile = useIsMobile();
+
+  if (isMobile) {
+    return (
+      <MobileExecution
+        runbook={runbook}
+        currentStepIndex={currentStepIndex}
+        stepExecutions={stepExecutions}
+        executionStartTime={executionStartTime}
+        isPaused={isPaused}
+        elapsedTime={elapsedTime}
+        onStepComplete={completeCurrentStep}
+        onStepSkip={skipCurrentStep}
+        onPauseResume={handlePauseResume}
+        onGoToStep={goToStep}
+        onNotesChange={setCurrentStepNotes}
+        onEvidenceUpload={() => setShowEvidenceDialog(true)}
+        notes={currentStepNotes}
+      />
+    );
+  }
 
   return (
     <div className="flex flex-col h-[calc(100vh-4rem)]">
@@ -391,9 +532,18 @@ export default function ExecuteRunbookPage({
                 </Button>
               ) : (
                 <>
+                  <div className="flex items-center gap-2">
+                    <StepTimer
+                      estimatedDuration={currentStep?.estimatedDuration || 30}
+                      startedAt={stepExecutions.get(currentStep?.id)?.startedAt}
+                      isActive={stepExecutions.get(currentStep?.id)?.status === 'in_progress'}
+                      isPaused={isPaused}
+                      variant="compact"
+                    />
+                  </div>
                   <Button
                     variant={isPaused ? 'default' : 'outline'}
-                    onClick={() => setIsPaused(!isPaused)}
+                    onClick={handlePauseResume}
                   >
                     {isPaused ? (
                       <>
@@ -416,7 +566,7 @@ export default function ExecuteRunbookPage({
             </div>
             <div className="flex items-center gap-2">
               <span className="text-sm text-muted-foreground">
-                Step {currentStepIndex + 1} of {runbook.steps.length}
+                Step {currentStepIndex + 1} of {runbook.steps?.length || 0}
               </span>
               <Button
                 variant="ghost"
@@ -429,11 +579,27 @@ export default function ExecuteRunbookPage({
               <Button
                 variant="ghost"
                 size="icon"
-                onClick={() => goToStep(Math.min(runbook.steps.length - 1, currentStepIndex + 1))}
-                disabled={currentStepIndex === runbook.steps.length - 1}
+                onClick={() => goToStep(Math.min((runbook.steps?.length || 1) - 1, currentStepIndex + 1))}
+                disabled={currentStepIndex === (runbook.steps?.length || 1) - 1}
               >
                 <ChevronRight className="h-4 w-4" />
               </Button>
+              {completedSteps === (runbook.steps?.length || 0) && (
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={() => {
+                    if (executionReport) {
+                      setShowReportDialog(true);
+                    } else {
+                      loadExecutionReport();
+                    }
+                  }}
+                >
+                  <FileText className="mr-2 h-4 w-4" />
+                  View Report
+                </Button>
+              )}
             </div>
           </div>
         </div>
@@ -477,6 +643,10 @@ export default function ExecuteRunbookPage({
                       <TabsTrigger value="instructions">Instructions</TabsTrigger>
                       {currentStep.tools && <TabsTrigger value="tools">Tools</TabsTrigger>}
                       {currentStep.notes && <TabsTrigger value="notes">Notes</TabsTrigger>}
+                      <TabsTrigger value="timer">Timer</TabsTrigger>
+                      <TabsTrigger value="evidence">
+                        Evidence ({stepEvidence.length})
+                      </TabsTrigger>
                     </TabsList>
 
                     <TabsContent value="instructions" className="mt-4">
@@ -516,6 +686,68 @@ export default function ExecuteRunbookPage({
                         </Card>
                       </TabsContent>
                     )}
+
+                    <TabsContent value="timer" className="mt-4">
+                      <Card>
+                        <CardContent className="pt-6">
+                          <StepTimer
+                            estimatedDuration={currentStep.estimatedDuration}
+                            startedAt={stepExecutions.get(currentStep.id)?.startedAt}
+                            isActive={stepExecutions.get(currentStep.id)?.status === 'in_progress'}
+                            isPaused={isPaused}
+                            onTogglePause={handlePauseResume}
+                          />
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
+
+                    <TabsContent value="evidence" className="mt-4">
+                      <Card>
+                        <CardHeader>
+                          <div className="flex items-center justify-between">
+                            <CardTitle className="text-base">Step Evidence</CardTitle>
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              onClick={() => setShowEvidenceDialog(true)}
+                              disabled={!executionStartTime}
+                            >
+                              <Upload className="mr-2 h-4 w-4" />
+                              Upload
+                            </Button>
+                          </div>
+                          <CardDescription>
+                            Files and documentation collected for this step
+                          </CardDescription>
+                        </CardHeader>
+                        <CardContent>
+                          {stepEvidence.length === 0 ? (
+                            <div className="text-center py-6 text-muted-foreground">
+                              No evidence uploaded for this step
+                            </div>
+                          ) : (
+                            <div className="space-y-2">
+                              {stepEvidence.map((item, index) => (
+                                <div key={index} className="flex items-center justify-between p-2 border rounded">
+                                  <div className="flex items-center gap-2">
+                                    <FileText className="h-4 w-4" />
+                                    <div>
+                                      <p className="text-sm font-medium">{item.evidence.fileName}</p>
+                                      <p className="text-xs text-muted-foreground">
+                                        Uploaded by {item.uploader.name}
+                                      </p>
+                                    </div>
+                                  </div>
+                                  <Button variant="ghost" size="sm">
+                                    <Eye className="h-4 w-4" />
+                                  </Button>
+                                </div>
+                              ))}
+                            </div>
+                          )}
+                        </CardContent>
+                      </Card>
+                    </TabsContent>
                   </Tabs>
                 </CardContent>
               </Card>
@@ -562,6 +794,14 @@ export default function ExecuteRunbookPage({
                     >
                       <SkipForward className="mr-2 h-4 w-4" />
                       Skip
+                    </Button>
+                    <Button
+                      variant="outline"
+                      onClick={() => setShowEvidenceDialog(true)}
+                      disabled={!executionStartTime}
+                    >
+                      <Upload className="mr-2 h-4 w-4" />
+                      Evidence
                     </Button>
                     <Button
                       variant="outline"
@@ -633,7 +873,7 @@ export default function ExecuteRunbookPage({
               Cancel
             </Button>
             <Button onClick={() => {
-              const currentStep = runbook.steps[currentStepIndex];
+              const currentStep = runbook.steps?.[currentStepIndex];
               if (currentStep) {
                 const execution = stepExecutions.get(currentStep.id);
                 if (execution) {
@@ -648,6 +888,25 @@ export default function ExecuteRunbookPage({
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Evidence Upload Dialog */}
+      <EvidenceUpload
+        open={showEvidenceDialog}
+        onOpenChange={setShowEvidenceDialog}
+        onUpload={handleEvidenceUpload}
+      />
+
+      {/* Execution Report Dialog */}
+      {executionReport && (
+        <ExecutionReport
+          data={executionReport}
+          trigger={
+            <Dialog open={showReportDialog} onOpenChange={setShowReportDialog}>
+              <DialogContent className="hidden" />
+            </Dialog>
+          }
+        />
+      )}
     </div>
   );
 }

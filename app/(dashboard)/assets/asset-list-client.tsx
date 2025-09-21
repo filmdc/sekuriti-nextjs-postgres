@@ -26,7 +26,10 @@ import { Checkbox } from '@/components/ui/checkbox';
 import { AssetCard } from '@/components/assets/asset-card';
 import { AssetGroupTree } from '@/components/assets/asset-group-tree';
 import { TagSelector } from '@/components/assets/tag-selector';
+import { TagFilter } from '@/components/assets/tag-filter';
 import { BulkActionBar } from '@/components/assets/bulk-action-bar';
+import { BulkTagDialog } from '@/components/assets/bulk-tag-dialog';
+import { BulkGroupDialog } from '@/components/assets/bulk-group-dialog';
 import {
   Search,
   Filter,
@@ -98,6 +101,8 @@ export function AssetListClient({
   const [showFilters, setShowFilters] = useState(false);
   const [sortBy, setSortBy] = useState(initialFilters.sortBy || 'created');
   const [sortOrder, setSortOrder] = useState<'asc' | 'desc'>(initialFilters.sortOrder || 'desc');
+  const [showBulkTagDialog, setShowBulkTagDialog] = useState(false);
+  const [showBulkGroupDialog, setShowBulkGroupDialog] = useState(false);
 
   const updateSearchParams = (updates: Record<string, any>) => {
     const params = new URLSearchParams(searchParams.toString());
@@ -159,13 +164,17 @@ export function AssetListClient({
   };
 
   const handleBulkTag = async () => {
-    // TODO: Show tag selector dialog
-    console.log('Bulk tag assets:', selectedAssets);
+    setShowBulkTagDialog(true);
   };
 
   const handleBulkAddToGroup = async () => {
-    // TODO: Show group selector dialog
-    console.log('Bulk add to group:', selectedAssets);
+    setShowBulkGroupDialog(true);
+  };
+
+  const handleBulkComplete = () => {
+    // Refresh the page to show updated data
+    router.refresh();
+    setSelectedAssets(new Set());
   };
 
   const handleExport = async () => {
@@ -365,14 +374,13 @@ export function AssetListClient({
               {/* Extended Filters */}
               {showFilters && (
                 <div className="mt-4 pt-4 border-t space-y-4">
-                  <TagSelector
+                  <TagFilter
                     availableTags={tags}
                     selectedTags={selectedTags}
                     onTagsChange={(tagIds) => {
                       setSelectedTags(tagIds);
                       updateSearchParams({ tags: tagIds });
                     }}
-                    placeholder="Filter by tags..."
                   />
                 </div>
               )}
@@ -552,6 +560,25 @@ export function AssetListClient({
         onTag={handleBulkTag}
         onAddToGroup={handleBulkAddToGroup}
         onExport={handleExport}
+      />
+
+      {/* Bulk Tag Dialog */}
+      <BulkTagDialog
+        open={showBulkTagDialog}
+        onOpenChange={setShowBulkTagDialog}
+        selectedAssetIds={Array.from(selectedAssets)}
+        availableTags={tags}
+        selectedAssets={assets.filter(({ asset }) => selectedAssets.has(asset.id)).map(({ asset, tags }) => ({ ...asset, tags }))}
+        onComplete={handleBulkComplete}
+      />
+
+      {/* Bulk Group Dialog */}
+      <BulkGroupDialog
+        open={showBulkGroupDialog}
+        onOpenChange={setShowBulkGroupDialog}
+        selectedAssetIds={Array.from(selectedAssets)}
+        availableGroups={groups}
+        onComplete={handleBulkComplete}
       />
     </>
   );

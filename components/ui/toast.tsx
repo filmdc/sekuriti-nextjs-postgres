@@ -1,15 +1,16 @@
-// Mock toast implementation - replace with sonner
+import { toast as sonnerToast } from 'sonner';
+
 export const toast = {
   success: (message: string) => {
-    console.log('✅', message);
+    sonnerToast.success(message);
   },
   error: (message: string) => {
-    console.error('❌', message);
+    sonnerToast.error(message);
   },
   info: (message: string) => {
-    console.info('ℹ️', message);
+    sonnerToast.info(message);
   },
   warning: (message: string) => {
-    console.warn('⚠️', message);
+    sonnerToast.warning(message);
   },
 };

@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
-import { getTagsByOrganization, createTag, searchTags } from '@/lib/db/queries-tags';
+import { getTagsByOrganization, createTag, searchTags, getPopularTags } from '@/lib/db/queries-tags';
 import { z } from 'zod';
 
 // GET /api/tags - List or search tags
@@ -13,10 +13,14 @@ export async function GET(request: NextRequest) {
 
     const searchParams = request.nextUrl.searchParams;
     const query = searchParams.get('q');
+    const popular = searchParams.get('popular') === 'true';
+    const limit = searchParams.get('limit') ? parseInt(searchParams.get('limit')!) : undefined;
 
     let tags;
     if (query) {
       tags = await searchTags(user.teamId, query);
+    } else if (popular) {
+      tags = await getPopularTags(user.teamId, limit);
     } else {
       tags = await getTagsByOrganization(user.teamId);
     }
