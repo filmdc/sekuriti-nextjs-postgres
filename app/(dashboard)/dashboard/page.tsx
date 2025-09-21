@@ -159,9 +159,9 @@ function TeamMembers() {
       <CardContent>
         <ul className="space-y-space-grid-4">
           {teamData.teamMembers.map((member, index) => (
-            <li key={member.id} className="flex items-center justify-between p-3 rounded-professional-md border border-border/50 transition-professional hover:bg-accent/50">
+            <li key={member.id} className="flex items-center justify-between p-3 rounded-professional-md border border-border/50 transition-all hover:bg-accent/50">
               <div className="flex items-center gap-space-grid-3">
-                <Avatar className="shadow-professional-xs">
+                <Avatar className="shadow-xs">
                   {/*
                     This app doesn't save profile images, but here
                     is how you'd show them:
@@ -259,7 +259,7 @@ function InviteTeamMember() {
               placeholder="Enter team member's email"
               required
               disabled={!isOwner}
-              className="transition-professional focus-enterprise"
+              className="transition-all focus-enterprise"
             />
           </div>
           <div className="space-y-space-grid-3">

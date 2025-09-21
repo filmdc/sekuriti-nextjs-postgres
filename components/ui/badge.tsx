@@ -8,28 +8,28 @@ const badgeVariants = cva(
     variants: {
       variant: {
         default:
-          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80 shadow-professional-xs",
+          "border-transparent bg-primary text-primary-foreground hover:bg-primary/80 shadow-xs",
         secondary:
-          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-professional-xs",
+          "border-transparent bg-secondary text-secondary-foreground hover:bg-secondary/80 shadow-xs",
         destructive:
-          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shadow-professional-xs",
+          "border-transparent bg-destructive text-destructive-foreground hover:bg-destructive/80 shadow-xs",
         outline:
           "text-foreground border-border hover:bg-accent hover:text-accent-foreground",
         // Cybersecurity status variants
         critical:
-          "border-transparent bg-status-critical text-status-critical-foreground hover:bg-status-critical/90 shadow-professional-sm animate-pulse",
+          "border-transparent bg-status-critical text-status-critical-foreground hover:bg-status-critical/90 shadow-sm animate-pulse",
         high:
-          "border-transparent bg-status-high text-status-high-foreground hover:bg-status-high/90 shadow-professional-xs",
+          "border-transparent bg-status-high text-status-high-foreground hover:bg-status-high/90 shadow-xs",
         medium:
-          "border-transparent bg-status-medium text-status-medium-foreground hover:bg-status-medium/90 shadow-professional-xs",
+          "border-transparent bg-status-medium text-status-medium-foreground hover:bg-status-medium/90 shadow-xs",
         low:
-          "border-transparent bg-status-low text-status-low-foreground hover:bg-status-low/90 shadow-professional-xs",
+          "border-transparent bg-status-low text-status-low-foreground hover:bg-status-low/90 shadow-xs",
         info:
-          "border-transparent bg-status-info text-status-info-foreground hover:bg-status-info/90 shadow-professional-xs",
+          "border-transparent bg-status-info text-status-info-foreground hover:bg-status-info/90 shadow-xs",
         success:
-          "border-transparent bg-status-success text-status-success-foreground hover:bg-status-success/90 shadow-professional-xs",
+          "border-transparent bg-status-success text-status-success-foreground hover:bg-status-success/90 shadow-xs",
         warning:
-          "border-transparent bg-status-warning text-status-warning-foreground hover:bg-status-warning/90 shadow-professional-xs",
+          "border-transparent bg-status-warning text-status-warning-foreground hover:bg-status-warning/90 shadow-xs",
         // Professional outlined variants
         "critical-outline":
           "border-status-critical text-status-critical bg-status-critical/10 hover:bg-status-critical/20",

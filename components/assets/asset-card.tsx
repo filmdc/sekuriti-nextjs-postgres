@@ -77,8 +77,8 @@ export function AssetCard({ asset, selected = false, onSelect, onDelete, selecti
     <Card
       hover
       className={cn(
-        'cursor-pointer transition-professional',
-        selected && 'ring-2 ring-primary shadow-professional-lg'
+        'cursor-pointer transition-all',
+        selected && 'ring-2 ring-primary shadow-lg'
       )}
     >
       <CardHeader className="pb-3">
@@ -171,7 +171,7 @@ export function AssetCard({ asset, selected = false, onSelect, onDelete, selecti
                 key={tag.id}
                 variant="outline"
                 size="sm"
-                className="transition-professional hover-lift"
+                className="transition-all hover-lift"
                 style={{
                   backgroundColor: `${tag.color}20`,
                   borderColor: tag.color,
@@ -221,7 +221,7 @@ export function AssetCard({ asset, selected = false, onSelect, onDelete, selecti
                   key={group.id}
                   variant="secondary"
                   size="sm"
-                  className="transition-professional hover-lift"
+                  className="transition-all hover-lift"
                   style={group.color ? {
                     backgroundColor: `${group.color}20`,
                     borderColor: group.color

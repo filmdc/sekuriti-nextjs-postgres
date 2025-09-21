@@ -206,7 +206,7 @@ function StatusIndicator({
 
   if (variant === 'minimal') {
     return (
-      <div className={cn('flex items-center gap-space-grid-2 transition-professional', className)}>
+      <div className={cn('flex items-center gap-space-grid-2 transition-all', className)}>
         {showIcon && (
           <Icon
             className={cn(
@@ -230,7 +230,7 @@ function StatusIndicator({
     return (
       <div className={cn(
         'inline-flex items-center gap-space-grid-2 px-3 py-1.5 rounded-professional-md border',
-        'shadow-professional-xs transition-professional font-medium select-none',
+        'shadow-xs transition-all font-medium select-none',
         sizeClasses[size],
         config.color,
         config.bgColor,
@@ -254,7 +254,7 @@ function StatusIndicator({
   return (
     <div className={cn(
       'flex items-center gap-space-grid-3 p-4 rounded-professional-lg border',
-      'shadow-professional-sm transition-professional',
+      'shadow-sm transition-all',
       config.bgColor,
       config.borderColor,
       config.pulse && 'animate-pulse',
@@ -371,7 +371,7 @@ function StatusDot({ status, size = 'default', className, pulse }: StatusDotProp
   return (
     <div
       className={cn(
-        'rounded-full shadow-professional-xs',
+        'rounded-full shadow-xs',
         sizes[size],
         config[status],
         shouldPulse && 'animate-pulse',

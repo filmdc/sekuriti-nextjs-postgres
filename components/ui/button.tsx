@@ -10,31 +10,31 @@ const buttonVariants = cva(
     variants: {
       variant: {
         default:
-          "bg-primary text-primary-foreground shadow-professional-sm hover:bg-primary/90 active:bg-primary/95 hover-lift",
+          "bg-primary text-primary-foreground shadow-sm hover:bg-primary/90 active:bg-primary/95 hover-lift",
         destructive:
-          "bg-destructive text-white shadow-professional-sm hover:bg-destructive/90 active:bg-destructive/95 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 hover-lift",
+          "bg-destructive text-white shadow-sm hover:bg-destructive/90 active:bg-destructive/95 focus-visible:ring-destructive/20 dark:focus-visible:ring-destructive/40 dark:bg-destructive/60 hover-lift",
         outline:
-          "border bg-background shadow-professional-xs hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 hover-lift",
+          "border bg-background shadow-xs hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:bg-input/30 dark:border-input dark:hover:bg-input/50 hover-lift",
         secondary:
-          "bg-secondary text-secondary-foreground shadow-professional-xs hover:bg-secondary/80 active:bg-secondary/90 hover-lift",
+          "bg-secondary text-secondary-foreground shadow-xs hover:bg-secondary/80 active:bg-secondary/90 hover-lift",
         ghost:
-          "hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:hover:bg-accent/50 transition-professional",
+          "hover:bg-accent hover:text-accent-foreground active:bg-accent/80 dark:hover:bg-accent/50 transition-all",
         link:
-          "text-primary underline-offset-4 hover:underline active:text-primary/80 transition-professional",
+          "text-primary underline-offset-4 hover:underline active:text-primary/80 transition-all",
         // Professional cybersecurity variants
         success:
-          "bg-status-success text-status-success-foreground shadow-professional-sm hover:bg-status-success/90 active:bg-status-success/95 hover-lift",
+          "bg-status-success text-status-success-foreground shadow-sm hover:bg-status-success/90 active:bg-status-success/95 hover-lift",
         warning:
-          "bg-status-warning text-status-warning-foreground shadow-professional-sm hover:bg-status-warning/90 active:bg-status-warning/95 hover-lift",
+          "bg-status-warning text-status-warning-foreground shadow-sm hover:bg-status-warning/90 active:bg-status-warning/95 hover-lift",
         danger:
-          "bg-status-critical text-status-critical-foreground shadow-professional-sm hover:bg-status-critical/90 active:bg-status-critical/95 hover-lift",
+          "bg-status-critical text-status-critical-foreground shadow-sm hover:bg-status-critical/90 active:bg-status-critical/95 hover-lift",
         // Subtle variants for secondary actions
         "outline-success":
-          "border border-status-success text-status-success bg-status-success/10 hover:bg-status-success/20 shadow-professional-xs hover-lift",
+          "border border-status-success text-status-success bg-status-success/10 hover:bg-status-success/20 shadow-xs hover-lift",
         "outline-warning":
-          "border border-status-warning text-status-warning bg-status-warning/10 hover:bg-status-warning/20 shadow-professional-xs hover-lift",
+          "border border-status-warning text-status-warning bg-status-warning/10 hover:bg-status-warning/20 shadow-xs hover-lift",
         "outline-danger":
-          "border border-status-critical text-status-critical bg-status-critical/10 hover:bg-status-critical/20 shadow-professional-xs hover-lift",
+          "border border-status-critical text-status-critical bg-status-critical/10 hover:bg-status-critical/20 shadow-xs hover-lift",
       },
       size: {
         xs: "h-8 lg:h-7 rounded-sm px-2.5 text-xs gap-1 min-h-[32px] lg:min-h-[28px]",

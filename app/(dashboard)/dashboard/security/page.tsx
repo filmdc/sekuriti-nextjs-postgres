@@ -63,7 +63,7 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.currentPassword}
-                className="transition-professional focus-enterprise"
+                className="transition-all focus-enterprise"
               />
             </div>
             <div className="space-y-space-grid-2">
@@ -79,7 +79,7 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.newPassword}
-                className="transition-professional focus-enterprise"
+                className="transition-all focus-enterprise"
               />
             </div>
             <div className="space-y-space-grid-2">
@@ -94,7 +94,7 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.confirmPassword}
-                className="transition-professional focus-enterprise"
+                className="transition-all focus-enterprise"
               />
             </div>
             {passwordState.error && (
@@ -147,7 +147,7 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={deleteState.password}
-                className="transition-professional focus-enterprise"
+                className="transition-all focus-enterprise"
               />
             </div>
             {deleteState.error && (

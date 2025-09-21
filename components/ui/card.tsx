@@ -12,10 +12,10 @@ function Card({ className, hover = false, elevated = false, ...props }: CardProp
     <div
       data-slot="card"
       className={cn(
-        "bg-card text-card-foreground flex flex-col gap-6 rounded-professional-xl border transition-professional",
-        "py-6 shadow-professional-sm",
+        "bg-card text-card-foreground flex flex-col gap-6 rounded-professional-xl border transition-all",
+        "py-6 shadow-sm",
         hover && "hover-lift cursor-pointer",
-        elevated && "shadow-professional-lg",
+        elevated && "shadow-lg",
         className
       )}
       {...props}

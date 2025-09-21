@@ -162,7 +162,7 @@
     @apply bg-status-warning text-status-warning-foreground;
   }
 
-  /* Professional shadow utilities */
+  /* Professional shadow utilities - deprecated, use standard Tailwind classes */
   .shadow-professional-xs { box-shadow: var(--shadow-xs); }
   .shadow-professional-sm { box-shadow: var(--shadow-sm); }
   .shadow-professional-md { box-shadow: var(--shadow-md); }
@@ -192,13 +192,13 @@
     @apply focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
   }
 
-  /* Animation utilities for professional feel */
+  /* Animation utilities for professional feel - deprecated, use standard Tailwind classes */
   .transition-professional {
     @apply transition-all duration-200 ease-in-out;
   }
 
   .hover-lift {
-    @apply hover:transform hover:-translate-y-0.5 hover:shadow-professional-lg transition-professional;
+    @apply hover:transform hover:-translate-y-0.5 hover:shadow-lg transition-all;
   }
 
   /* Button press effect */
