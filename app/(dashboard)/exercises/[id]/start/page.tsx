@@ -207,7 +207,7 @@ export default function ExerciseStartPage({ params }: ExerciseStartPageProps) {
 
   const handleAutoSubmit = () => {
     toast({
-      title: 'Time's up!',
+      title: "Time's up!",
       description: 'Your exercise is being submitted automatically.',
       variant: 'destructive'
     });

@@ -72,26 +72,26 @@ export default function AssetsPage({
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
+    <div className="flex-1 space-y-4 p-3 sm:p-4 md:p-8 pt-4 md:pt-6">
       {/* Header */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Asset Management</h2>
-          <p className="text-muted-foreground mt-2">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Asset Management</h2>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
             Track and manage your organization's critical assets
           </p>
         </div>
-        <div className="flex gap-2">
-          <Button asChild variant="outline">
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/assets/groups">
               <FolderTree className="h-4 w-4 mr-2" />
-              Manage Groups
+              <span className="sm:inline">Manage Groups</span>
             </Link>
           </Button>
-          <Button asChild>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/assets/new">
               <Plus className="h-4 w-4 mr-2" />
-              Add Asset
+              <span className="sm:inline">Add Asset</span>
             </Link>
           </Button>
         </div>

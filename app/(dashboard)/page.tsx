@@ -14,11 +14,20 @@ import {
   TrendingUp,
   BookOpen,
   Package,
-  GraduationCap
+  GraduationCap,
+  Search
 } from 'lucide-react';
 import Link from 'next/link';
 import { getTeamForUser } from '@/lib/db/queries';
 import { getDashboardStats, getIncidents } from '@/lib/db/queries-ir';
+
+// Dashboard widgets
+import { IncidentSummaryWidget } from '@/components/dashboard/incident-summary-widget';
+import { AssetStatusWidget } from '@/components/dashboard/asset-status-widget';
+import { TeamActivityWidget } from '@/components/dashboard/team-activity-widget';
+import { RunbookActivityWidget } from '@/components/dashboard/runbook-activity-widget';
+import { CriticalAlertsWidget } from '@/components/dashboard/critical-alerts-widget';
+import { GlobalSearch } from '@/components/ui/search/global-search';
 
 async function DashboardStats() {
   const team = await getTeamForUser();
@@ -28,153 +37,189 @@ async function DashboardStats() {
   const recentIncidents = await getIncidents(team.id, {});
   const openIncidents = recentIncidents.filter(i => i.incident.status === 'open');
 
+  // Mock data for new widgets - in production, these would come from actual database queries
+  const mockAssets = [
+    { id: 1, name: 'Production DB Server', type: 'database', criticality: 'critical' as const, status: 'active' as const },
+    { id: 2, name: 'Web Application Server', type: 'application', criticality: 'high' as const, status: 'active' as const },
+    { id: 3, name: 'Backup Storage', type: 'storage', criticality: 'medium' as const, status: 'maintenance' as const }
+  ];
+
+  const mockTeamActivity = [
+    {
+      id: 1,
+      type: 'incident_created' as const,
+      description: 'Created new security incident for phishing campaign',
+      user: { id: 1, name: 'John Doe', email: 'john@company.com' },
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000) // 2 hours ago
+    },
+    {
+      id: 2,
+      type: 'asset_added' as const,
+      description: 'Added new database server to asset inventory',
+      user: { id: 2, name: 'Jane Smith', email: 'jane@company.com' },
+      timestamp: new Date(Date.now() - 4 * 60 * 60 * 1000) // 4 hours ago
+    }
+  ];
+
+  const mockRunbookExecutions = [
+    {
+      id: 1,
+      runbookTitle: 'Incident Response - Data Breach',
+      executorName: 'Security Team',
+      status: 'running' as const,
+      progress: 65,
+      startedAt: new Date(Date.now() - 30 * 60 * 1000), // 30 minutes ago
+      stepsCompleted: 13,
+      totalSteps: 20,
+      incidentId: 1
+    }
+  ];
+
+  const mockCriticalAlerts = [
+    {
+      id: 1,
+      type: 'security_breach' as const,
+      title: 'Unusual Login Activity Detected',
+      description: 'Multiple failed login attempts from unknown IP addresses detected on production systems',
+      severity: 'critical' as const,
+      timestamp: new Date(Date.now() - 15 * 60 * 1000), // 15 minutes ago
+      source: 'Security Monitor',
+      actionRequired: true,
+      url: '/incidents/new'
+    },
+    {
+      id: 2,
+      type: 'compliance_violation' as const,
+      title: 'Data Retention Policy Violation',
+      description: 'Customer data found to be retained beyond policy limits in legacy system',
+      severity: 'high' as const,
+      timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000), // 2 hours ago
+      source: 'Compliance Scanner',
+      actionRequired: true
+    }
+  ];
+
   return (
     <>
-      {/* Stats Cards */}
-      <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-        <Card>
+      {/* Key Metrics */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-2 lg:grid-cols-4">
+        <Card className="touch-manipulation hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Open Incidents</CardTitle>
-            <AlertTriangle className="h-4 w-4 text-red-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Open Incidents</CardTitle>
+            <AlertTriangle className="h-4 w-4 text-red-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.openIncidents}</div>
+            <div className="text-xl sm:text-2xl font-bold">{stats.openIncidents}</div>
             <p className="text-xs text-muted-foreground">
-              {stats.openIncidents === 0 ? 'All clear' : 'Requires attention'}
+              {stats.openIncidents === 0 ? 'All clear' : 'Attention needed'}
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="touch-manipulation hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Protected Assets</CardTitle>
-            <Package className="h-4 w-4 text-blue-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Protected Assets</CardTitle>
+            <Package className="h-4 w-4 text-blue-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.totalAssets}</div>
+            <div className="text-xl sm:text-2xl font-bold">{stats.totalAssets}</div>
             <p className="text-xs text-muted-foreground">
-              Tracked in inventory
+              In inventory
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="touch-manipulation hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Active Runbooks</CardTitle>
-            <BookOpen className="h-4 w-4 text-green-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Active Runbooks</CardTitle>
+            <BookOpen className="h-4 w-4 text-green-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.activeRunbooks}</div>
+            <div className="text-xl sm:text-2xl font-bold">{stats.activeRunbooks}</div>
             <p className="text-xs text-muted-foreground">
-              Response procedures
+              Procedures
             </p>
           </CardContent>
         </Card>
-        <Card>
+        <Card className="touch-manipulation hover:shadow-md transition-shadow">
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Training Completed</CardTitle>
-            <GraduationCap className="h-4 w-4 text-purple-500" />
+            <CardTitle className="text-xs sm:text-sm font-medium">Training Completed</CardTitle>
+            <GraduationCap className="h-4 w-4 text-purple-500 flex-shrink-0" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{stats.completedExercises}</div>
+            <div className="text-xl sm:text-2xl font-bold">{stats.completedExercises}</div>
             <p className="text-xs text-muted-foreground">
-              Tabletop exercises
+              Exercises
             </p>
           </CardContent>
         </Card>
       </div>
 
-      {/* Quick Actions */}
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-2 border-dashed">
+      {/* Critical Alerts & Quick Actions */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-3">
+        <CriticalAlertsWidget
+          alerts={mockCriticalAlerts}
+          totalAlerts={mockCriticalAlerts.length}
+          alertTrend="up"
+          trendPercentage={15}
+        />
+        <Card className="border-2 border-dashed lg:order-2">
           <CardHeader>
-            <CardTitle className="text-lg">Quick Actions</CardTitle>
+            <CardTitle className="text-base sm:text-lg">Quick Actions</CardTitle>
           </CardHeader>
           <CardContent className="grid gap-2">
-            <Button asChild className="w-full justify-start">
+            <Button asChild className="w-full justify-start h-11 sm:h-10">
               <Link href="/incidents/new">
-                <AlertTriangle className="mr-2 h-4 w-4" />
-                Record New Incident
+                <AlertTriangle className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Record New Incident</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
+            <Button asChild variant="outline" className="w-full justify-start h-11 sm:h-10">
               <Link href="/assets/new">
-                <Package className="mr-2 h-4 w-4" />
-                Add Asset
+                <Package className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Add Asset</span>
               </Link>
             </Button>
-            <Button asChild variant="outline" className="w-full justify-start">
+            <Button asChild variant="outline" className="w-full justify-start h-11 sm:h-10">
               <Link href="/exercises">
-                <GraduationCap className="mr-2 h-4 w-4" />
-                Start Training
+                <GraduationCap className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">Start Training</span>
+              </Link>
+            </Button>
+            <Button asChild variant="outline" className="w-full justify-start h-11 sm:h-10">
+              <Link href="/runbooks">
+                <BookOpen className="mr-2 h-4 w-4 flex-shrink-0" />
+                <span className="truncate">View Runbooks</span>
               </Link>
             </Button>
           </CardContent>
         </Card>
+        <IncidentSummaryWidget
+          incidents={openIncidents}
+          totalOpen={stats.openIncidents}
+        />
+      </div>
 
-        {/* Recent Incidents */}
-        <Card className="md:col-span-2">
-          <CardHeader className="flex flex-row items-center justify-between">
-            <CardTitle className="text-lg">Recent Incidents</CardTitle>
-            <Button asChild variant="ghost" size="sm">
-              <Link href="/incidents">
-                View all
-                <ArrowRight className="ml-2 h-4 w-4" />
-              </Link>
-            </Button>
-          </CardHeader>
-          <CardContent>
-            {openIncidents.length === 0 ? (
-              <div className="text-center py-6">
-                <CheckCircle className="h-12 w-12 mx-auto text-green-500 mb-2" />
-                <p className="text-sm text-muted-foreground">No open incidents</p>
-              </div>
-            ) : (
-              <div className="space-y-3">
-                {openIncidents.slice(0, 3).map((item) => {
-                  const incident = item.incident;
-                  return (
-                    <Link
-                      key={incident.id}
-                      href={`/incidents/${incident.id}`}
-                      className="flex items-center justify-between p-3 rounded-lg hover:bg-gray-50 transition-colors"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className={`p-2 rounded-full ${
-                          incident.severity === 'critical' ? 'bg-red-100' :
-                          incident.severity === 'high' ? 'bg-orange-100' :
-                          incident.severity === 'medium' ? 'bg-yellow-100' :
-                          'bg-blue-100'
-                        }`}>
-                          <AlertTriangle className={`h-4 w-4 ${
-                            incident.severity === 'critical' ? 'text-red-600' :
-                            incident.severity === 'high' ? 'text-orange-600' :
-                            incident.severity === 'medium' ? 'text-yellow-600' :
-                            'text-blue-600'
-                          }`} />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{incident.title}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {incident.referenceNumber} • {incident.classification.replace('_', ' ')}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="flex items-center gap-2">
-                        <span className={`px-2 py-1 rounded-full text-xs font-medium ${
-                          incident.status === 'open' ? 'bg-red-100 text-red-800' :
-                          incident.status === 'contained' ? 'bg-yellow-100 text-yellow-800' :
-                          'bg-green-100 text-green-800'
-                        }`}>
-                          {incident.status}
-                        </span>
-                        <ArrowRight className="h-4 w-4 text-gray-400" />
-                      </div>
-                    </Link>
-                  );
-                })}
-              </div>
-            )}
-          </CardContent>
-        </Card>
+      {/* Asset & Team Management */}
+      <div className="grid gap-3 sm:gap-4 grid-cols-1 lg:grid-cols-2">
+        <AssetStatusWidget
+          totalAssets={stats.totalAssets}
+          criticalAssets={Math.floor(stats.totalAssets * 0.1)}
+          mustContactAssets={Math.floor(stats.totalAssets * 0.3)}
+          recentAssets={mockAssets}
+        />
+        <TeamActivityWidget
+          activities={mockTeamActivity}
+          activeMembers={5}
+          totalMembers={8}
+        />
+      </div>
+
+      {/* Runbook Activity */}
+      <div className="grid gap-3 sm:gap-4">
+        <RunbookActivityWidget
+          executions={mockRunbookExecutions}
+          totalRunbooks={stats.activeRunbooks}
+          activeExecutions={1}
+        />
       </div>
 
       {/* Activity Timeline */}
@@ -236,19 +281,32 @@ function DashboardSkeleton() {
 
 export default function DashboardPage() {
   return (
-    <div className="flex-1 space-y-4 p-4 md:p-8 pt-6">
-      <div className="flex items-center justify-between">
-        <div>
-          <h2 className="text-3xl font-bold tracking-tight">Security Dashboard</h2>
-          <p className="text-muted-foreground mt-2">
+    <div className="flex-1 space-y-4 p-3 sm:p-4 md:p-8 pt-4 md:pt-6">
+      <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4">
+        <div className="min-w-0">
+          <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">Security Dashboard</h2>
+          <p className="text-muted-foreground mt-1 sm:mt-2 text-sm sm:text-base">
             Monitor and manage your organization's security posture
           </p>
         </div>
-        <div className="flex items-center gap-2">
-          <Button asChild>
+        <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
+          <div className="hidden sm:block">
+            <GlobalSearch
+              trigger={
+                <Button variant="outline" className="relative w-full lg:w-64 justify-start">
+                  <Search className="mr-2 h-4 w-4" />
+                  Search...
+                  <kbd className="pointer-events-none absolute right-2 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 lg:flex">
+                    <span className="text-xs">⌘</span>K
+                  </kbd>
+                </Button>
+              }
+            />
+          </div>
+          <Button asChild className="w-full sm:w-auto">
             <Link href="/incidents/new">
               <Plus className="mr-2 h-4 w-4" />
-              New Incident
+              <span className="sm:inline">New Incident</span>
             </Link>
           </Button>
         </div>

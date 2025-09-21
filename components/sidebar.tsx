@@ -96,12 +96,14 @@ function NavItemComponent({
   item,
   isActive,
   isParentActive,
-  level = 0
+  level = 0,
+  onItemClick
 }: {
   item: NavItem;
   isActive: boolean;
   isParentActive: boolean;
   level?: number;
+  onItemClick?: () => void;
 }) {
   const [isExpanded, setIsExpanded] = useState(isParentActive);
   const pathname = usePathname();
@@ -113,19 +115,19 @@ function NavItemComponent({
 
   if (!item.children) {
     return (
-      <Link href={item.href} className="block">
+      <Link href={item.href} className="block" onClick={onItemClick}>
         <Button
           variant={isActive ? 'secondary' : 'ghost'}
           className={cn(
-            'w-full justify-start h-9 px-3 font-normal',
+            'w-full justify-start h-11 lg:h-9 px-3 font-normal touch-manipulation',
             level > 0 && 'ml-4 w-[calc(100%-1rem)]',
             isActive && 'bg-accent text-accent-foreground font-medium'
           )}
         >
-          <item.icon className="mr-3 h-4 w-4" />
-          <span>{item.label}</span>
+          <item.icon className="mr-3 h-4 w-4 flex-shrink-0" />
+          <span className="truncate">{item.label}</span>
           {item.badge && (
-            <span className="ml-auto text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full">
+            <span className="ml-auto text-xs bg-primary text-primary-foreground px-1.5 py-0.5 rounded-full flex-shrink-0">
               {item.badge}
             </span>
           )}
@@ -140,7 +142,7 @@ function NavItemComponent({
         <Button
           variant={isParentActive ? 'secondary' : 'ghost'}
           className={cn(
-            'w-full justify-start h-9 px-3 font-normal',
+            'w-full justify-start h-11 lg:h-9 px-3 font-normal touch-manipulation',
             level > 0 && 'ml-4 w-[calc(100%-1rem)]',
             isParentActive && 'bg-accent text-accent-foreground font-medium'
           )}
@@ -169,6 +171,7 @@ function NavItemComponent({
               isActive={childIsActive}
               isParentActive={false}
               level={level + 1}
+              onItemClick={onItemClick}
             />
           );
         })}
@@ -179,10 +182,10 @@ function NavItemComponent({
 
 interface SidebarProps {
   className?: string;
+  onItemClick?: () => void;
 }
 
-export function Sidebar({ className }: SidebarProps) {
-  const [isMobileOpen, setIsMobileOpen] = useState(false);
+export function Sidebar({ className, onItemClick }: SidebarProps) {
   const pathname = usePathname();
 
   const checkIfParentActive = (item: NavItem): boolean => {
@@ -194,33 +197,12 @@ export function Sidebar({ className }: SidebarProps) {
   };
 
   return (
-    <>
-      {/* Mobile menu button */}
-      <Button
-        variant="ghost"
-        size="icon"
-        className="fixed top-4 left-4 z-50 lg:hidden"
-        onClick={() => setIsMobileOpen(!isMobileOpen)}
-      >
-        {isMobileOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
-      </Button>
-
-      {/* Mobile overlay */}
-      {isMobileOpen && (
-        <div
-          className="fixed inset-0 bg-black/50 z-40 lg:hidden"
-          onClick={() => setIsMobileOpen(false)}
-        />
+    <aside
+      className={cn(
+        'h-full w-full bg-background border-r',
+        className
       )}
-
-      {/* Sidebar */}
-      <aside
-        className={cn(
-          'fixed left-0 top-0 z-40 h-full w-64 transform bg-background border-r transition-transform duration-200 ease-in-out lg:translate-x-0 lg:static lg:inset-0',
-          isMobileOpen ? 'translate-x-0' : '-translate-x-full',
-          className
-        )}
-      >
+    >
         <div className="flex h-full flex-col">
           {/* Header */}
           <div className="flex h-16 shrink-0 items-center border-b px-4">
@@ -244,6 +226,7 @@ export function Sidebar({ className }: SidebarProps) {
                   item={item}
                   isActive={isActive}
                   isParentActive={isParentActive}
+                  onItemClick={onItemClick}
                 />
               );
             })}
@@ -251,24 +234,20 @@ export function Sidebar({ className }: SidebarProps) {
 
           {/* Settings link at bottom */}
           <div className="border-t p-4">
-            <Link href="/dashboard" className="block">
+            <Link href="/dashboard" className="block" onClick={onItemClick}>
               <Button
                 variant={pathname.startsWith('/dashboard') ? 'secondary' : 'ghost'}
                 className={cn(
-                  'w-full justify-start h-9 px-3 font-normal',
+                  'w-full justify-start h-11 lg:h-9 px-3 font-normal touch-manipulation',
                   pathname.startsWith('/dashboard') && 'bg-accent text-accent-foreground font-medium'
                 )}
               >
-                <Settings className="mr-3 h-4 w-4" />
+                <Settings className="mr-3 h-4 w-4 flex-shrink-0" />
                 <span>Settings</span>
               </Button>
             </Link>
           </div>
         </div>
       </aside>
-
-      {/* Spacer for desktop layout */}
-      <div className="hidden lg:block lg:w-64 lg:shrink-0" />
-    </>
-  );
+    );
 }
