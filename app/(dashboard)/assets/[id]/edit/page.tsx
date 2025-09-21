@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssetById } from '@/lib/db/queries-assets';
 import { getAssetGroupsFlat } from '@/lib/db/queries-groups';
 import { getTagsByOrganization } from '@/lib/db/queries-tags';
@@ -26,8 +26,8 @@ export default async function EditAssetPage({
 }: {
   params: { id: string };
 }) {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to edit assets</p>
@@ -36,9 +36,9 @@ export default async function EditAssetPage({
   }
 
   const [assetData, groups, tags] = await Promise.all([
-    getAssetById(parseInt(params.id), user.teamId),
-    getAssetGroupsFlat(user.teamId),
-    getTagsByOrganization(user.teamId)
+    getAssetById(parseInt(params.id), team.id),
+    getAssetGroupsFlat(team.id),
+    getTagsByOrganization(team.id)
   ]);
 
   if (!assetData) {

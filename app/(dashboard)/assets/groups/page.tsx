@@ -1,4 +1,4 @@
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssetGroups, getGroupStatistics } from '@/lib/db/queries-groups';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -17,8 +17,8 @@ import Link from 'next/link';
 import { AssetGroupsClient } from './groups-client';
 
 export default async function AssetGroupsPage() {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to manage asset groups</p>
@@ -27,8 +27,8 @@ export default async function AssetGroupsPage() {
   }
 
   const [groups, stats] = await Promise.all([
-    getAssetGroups(user.teamId),
-    getGroupStatistics(user.teamId)
+    getAssetGroups(team.id),
+    getGroupStatistics(team.id)
   ]);
 
   return (

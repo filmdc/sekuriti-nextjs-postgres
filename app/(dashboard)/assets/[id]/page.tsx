@@ -1,5 +1,5 @@
 import { notFound } from 'next/navigation';
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssetById } from '@/lib/db/queries-assets';
 import { getTagsByOrganization } from '@/lib/db/queries-tags';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -55,8 +55,8 @@ export default async function AssetDetailPage({
 }: {
   params: { id: string };
 }) {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to view asset details</p>
@@ -65,8 +65,8 @@ export default async function AssetDetailPage({
   }
 
   const [assetData, availableTags] = await Promise.all([
-    getAssetById(parseInt(params.id), user.teamId),
-    getTagsByOrganization(user.teamId)
+    getAssetById(parseInt(params.id), team.id),
+    getTagsByOrganization(team.id)
   ]);
 
   if (!assetData) {

@@ -1,4 +1,4 @@
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssetGroupsFlat } from '@/lib/db/queries-groups';
 import { createAssetGroupAction } from '@/lib/actions/assets';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -22,8 +22,8 @@ export default async function NewAssetGroupPage({
 }: {
   searchParams: { parent?: string };
 }) {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to create asset groups</p>
@@ -31,7 +31,7 @@ export default async function NewAssetGroupPage({
     );
   }
 
-  const groups = await getAssetGroupsFlat(user.teamId);
+  const groups = await getAssetGroupsFlat(team.id);
   const parentId = searchParams.parent ? parseInt(searchParams.parent) : undefined;
   const parentGroup = parentId ? groups.find(g => g.id === parentId) : undefined;
 
