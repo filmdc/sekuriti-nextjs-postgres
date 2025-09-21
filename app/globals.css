@@ -163,11 +163,6 @@
   }
 
   /* Professional shadow utilities - deprecated, use standard Tailwind classes */
-  .shadow-professional-xs { box-shadow: var(--shadow-xs); }
-  .shadow-professional-sm { box-shadow: var(--shadow-sm); }
-  .shadow-professional-md { box-shadow: var(--shadow-md); }
-  .shadow-professional-lg { box-shadow: var(--shadow-lg); }
-  .shadow-professional-xl { box-shadow: var(--shadow-xl); }
 
   /* Typography hierarchy for enterprise */
   .text-enterprise-xs { font-size: var(--font-size-xs); }

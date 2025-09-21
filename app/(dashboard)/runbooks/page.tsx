@@ -74,10 +74,10 @@ export default async function RunbooksPage({
           <Input
             placeholder="Search runbooks..."
             className="pl-10"
-            defaultValue={searchParams.q}
+            defaultValue={params.q}
           />
         </div>
-        <Select defaultValue={searchParams.classification || 'all'}>
+        <Select defaultValue={params.classification || 'all'}>
           <SelectTrigger className="w-[200px]">
             <SelectValue placeholder="Classification" />
           </SelectTrigger>
@@ -96,7 +96,7 @@ export default async function RunbooksPage({
       </div>
 
       {/* Tabs for Templates vs Custom */}
-      <Tabs defaultValue={searchParams.template === 'true' ? 'templates' : 'custom'}>
+      <Tabs defaultValue={params.template === 'true' ? 'templates' : 'custom'}>
         <TabsList>
           <TabsTrigger value="custom">Custom Runbooks</TabsTrigger>
           <TabsTrigger value="templates">Templates</TabsTrigger>
