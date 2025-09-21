@@ -27,7 +27,6 @@ import { AssetStatusWidget } from '@/components/dashboard/asset-status-widget';
 import { TeamActivityWidget } from '@/components/dashboard/team-activity-widget';
 import { RunbookActivityWidget } from '@/components/dashboard/runbook-activity-widget';
 import { CriticalAlertsWidget } from '@/components/dashboard/critical-alerts-widget';
-import { GlobalSearch } from '@/components/ui/search/global-search';
 
 async function DashboardStats() {
   const team = await getTeamForUser();
@@ -290,19 +289,6 @@ export default function DashboardPage() {
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <div className="hidden sm:block">
-            <GlobalSearch
-              trigger={
-                <Button variant="outline" className="relative w-full lg:w-64 justify-start">
-                  <Search className="mr-2 h-4 w-4" />
-                  Search...
-                  <kbd className="pointer-events-none absolute right-2 top-1.5 hidden h-5 select-none items-center gap-1 rounded border bg-muted px-1.5 font-mono text-[10px] font-medium opacity-100 lg:flex">
-                    <span className="text-xs">⌘</span>K
-                  </kbd>
-                </Button>
-              }
-            />
-          </div>
           <Button asChild className="w-full sm:w-auto">
             <Link href="/incidents/new">
               <Plus className="mr-2 h-4 w-4" />
