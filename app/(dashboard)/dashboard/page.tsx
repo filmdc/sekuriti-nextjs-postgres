@@ -9,6 +9,8 @@ import {
   CardTitle,
   CardFooter
 } from '@/components/ui/card';
+import { Badge } from '@/components/ui/badge';
+import { StatusIndicator } from '@/components/ui/status-indicator';
 import { customerPortalAction } from '@/lib/payments/actions';
 import { useActionState } from 'react';
 import { TeamDataWithMembers, User } from '@/lib/db/schema';
@@ -18,7 +20,7 @@ import { Suspense } from 'react';
 import { Input } from '@/components/ui/input';
 import { RadioGroup, RadioGroupItem } from '@/components/ui/radio-group';
 import { Label } from '@/components/ui/label';
-import { Loader2, PlusCircle } from 'lucide-react';
+import { Loader2, PlusCircle, Users, Settings, CreditCard } from 'lucide-react';
 
 type ActionState = {
   error?: string;
@@ -29,9 +31,12 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 function SubscriptionSkeleton() {
   return (
-    <Card className="mb-8 h-[140px]">
+    <Card className="h-[140px]">
       <CardHeader>
-        <CardTitle>Team Subscription</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <CreditCard className="h-5 w-5 text-muted-foreground animate-pulse" />
+          Team Subscription
+        </CardTitle>
       </CardHeader>
     </Card>
   );
@@ -41,18 +46,33 @@ function ManageSubscription() {
   const { data: teamData } = useSWR<TeamDataWithMembers>('/api/team', fetcher);
 
   return (
-    <Card className="mb-8">
+    <Card elevated>
       <CardHeader>
-        <CardTitle>Team Subscription</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <CreditCard className="h-5 w-5 text-muted-foreground" />
+          Team Subscription
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="space-y-4">
-          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center">
-            <div className="mb-4 sm:mb-0">
-              <p className="font-medium">
-                Current Plan: {teamData?.planName || 'Free'}
-              </p>
-              <p className="text-sm text-muted-foreground">
+        <div className="space-y-space-grid-4">
+          <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-space-grid-4">
+            <div className="space-y-space-grid-2">
+              <div className="flex items-center gap-space-grid-2">
+                <span className="font-semibold text-enterprise-lg">
+                  {teamData?.planName || 'Free'}
+                </span>
+                <Badge
+                  variant={teamData?.subscriptionStatus === 'active' ? 'success' : 'warning'}
+                  size="sm"
+                >
+                  {teamData?.subscriptionStatus === 'active'
+                    ? 'Active'
+                    : teamData?.subscriptionStatus === 'trialing'
+                    ? 'Trial'
+                    : 'Inactive'}
+                </Badge>
+              </div>
+              <p className="text-enterprise-sm text-muted-foreground">
                 {teamData?.subscriptionStatus === 'active'
                   ? 'Billed monthly'
                   : teamData?.subscriptionStatus === 'trialing'
@@ -61,7 +81,8 @@ function ManageSubscription() {
               </p>
             </div>
             <form action={customerPortalAction}>
-              <Button type="submit" variant="outline">
+              <Button type="submit" variant="outline" size="default">
+                <Settings className="mr-2 h-4 w-4" />
                 Manage Subscription
               </Button>
             </form>
@@ -74,17 +95,20 @@ function ManageSubscription() {
 
 function TeamMembersSkeleton() {
   return (
-    <Card className="mb-8 h-[140px]">
+    <Card className="h-[140px]">
       <CardHeader>
-        <CardTitle>Team Members</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <Users className="h-5 w-5 text-muted-foreground animate-pulse" />
+          Team Members
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <div className="animate-pulse space-y-4 mt-1">
-          <div className="flex items-center space-x-4">
-            <div className="size-8 rounded-full bg-gray-200"></div>
-            <div className="space-y-2">
-              <div className="h-4 w-32 bg-gray-200 rounded"></div>
-              <div className="h-3 w-14 bg-gray-200 rounded"></div>
+        <div className="animate-pulse space-y-space-grid-4">
+          <div className="flex items-center gap-space-grid-3">
+            <div className="size-10 rounded-full bg-muted"></div>
+            <div className="space-y-space-grid-2">
+              <div className="h-4 w-32 bg-muted rounded-professional-sm"></div>
+              <div className="h-3 w-14 bg-muted rounded-professional-sm"></div>
             </div>
           </div>
         </div>
@@ -106,29 +130,39 @@ function TeamMembers() {
 
   if (!teamData?.teamMembers?.length) {
     return (
-      <Card className="mb-8">
+      <Card>
         <CardHeader>
-          <CardTitle>Team Members</CardTitle>
+          <CardTitle className="flex items-center gap-space-grid-2">
+            <Users className="h-5 w-5 text-muted-foreground" />
+            Team Members
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-muted-foreground">No team members yet.</p>
+          <StatusIndicator
+            status="info"
+            variant="minimal"
+            message="No team members yet."
+          />
         </CardContent>
       </Card>
     );
   }
 
   return (
-    <Card className="mb-8">
+    <Card elevated>
       <CardHeader>
-        <CardTitle>Team Members</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <Users className="h-5 w-5 text-muted-foreground" />
+          Team Members ({teamData.teamMembers.length})
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <ul className="space-y-4">
+        <ul className="space-y-space-grid-4">
           {teamData.teamMembers.map((member, index) => (
-            <li key={member.id} className="flex items-center justify-between">
-              <div className="flex items-center space-x-4">
-                <Avatar>
-                  {/* 
+            <li key={member.id} className="flex items-center justify-between p-3 rounded-professional-md border border-border/50 transition-professional hover:bg-accent/50">
+              <div className="flex items-center gap-space-grid-3">
+                <Avatar className="shadow-professional-xs">
+                  {/*
                     This app doesn't save profile images, but here
                     is how you'd show them:
 
@@ -137,20 +171,23 @@ function TeamMembers() {
                       alt={getUserDisplayName(member.user)}
                     />
                   */}
-                  <AvatarFallback>
+                  <AvatarFallback className="bg-primary/10 text-primary font-semibold">
                     {getUserDisplayName(member.user)
                       .split(' ')
                       .map((n) => n[0])
                       .join('')}
                   </AvatarFallback>
                 </Avatar>
-                <div>
-                  <p className="font-medium">
+                <div className="space-y-space-grid-1">
+                  <p className="font-semibold text-enterprise-base">
                     {getUserDisplayName(member.user)}
                   </p>
-                  <p className="text-sm text-muted-foreground capitalize">
+                  <Badge
+                    variant={member.role === 'owner' ? 'default' : 'secondary'}
+                    size="sm"
+                  >
                     {member.role}
-                  </p>
+                  </Badge>
                 </div>
               </div>
               {index > 1 ? (
@@ -158,8 +195,9 @@ function TeamMembers() {
                   <input type="hidden" name="memberId" value={member.id} />
                   <Button
                     type="submit"
-                    variant="outline"
+                    variant="outline-danger"
                     size="sm"
+                    loading={isRemovePending}
                     disabled={isRemovePending}
                   >
                     {isRemovePending ? 'Removing...' : 'Remove'}
@@ -170,7 +208,9 @@ function TeamMembers() {
           ))}
         </ul>
         {removeState?.error && (
-          <p className="text-red-500 mt-4">{removeState.error}</p>
+          <div className="mt-space-grid-4 text-status-critical text-enterprise-sm bg-status-critical/10 p-3 rounded-professional-md border border-status-critical/20">
+            {removeState.error}
+          </div>
         )}
       </CardContent>
     </Card>
@@ -181,7 +221,10 @@ function InviteTeamMemberSkeleton() {
   return (
     <Card className="h-[260px]">
       <CardHeader>
-        <CardTitle>Invite Team Member</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <PlusCircle className="h-5 w-5 text-muted-foreground animate-pulse" />
+          Invite Team Member
+        </CardTitle>
       </CardHeader>
     </Card>
   );
@@ -198,71 +241,75 @@ function InviteTeamMember() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Invite Team Member</CardTitle>
+        <CardTitle className="flex items-center gap-space-grid-2">
+          <PlusCircle className="h-5 w-5 text-muted-foreground" />
+          Invite Team Member
+        </CardTitle>
       </CardHeader>
       <CardContent>
-        <form action={inviteAction} className="space-y-4">
-          <div>
-            <Label htmlFor="email" className="mb-2">
-              Email
+        <form action={inviteAction} className="space-y-space-grid-4">
+          <div className="space-y-space-grid-2">
+            <Label htmlFor="email" className="text-enterprise-sm font-medium">
+              Email Address
             </Label>
             <Input
               id="email"
               name="email"
               type="email"
-              placeholder="Enter email"
+              placeholder="Enter team member's email"
               required
               disabled={!isOwner}
+              className="transition-professional focus-enterprise"
             />
           </div>
-          <div>
-            <Label>Role</Label>
+          <div className="space-y-space-grid-3">
+            <Label className="text-enterprise-sm font-medium">Role</Label>
             <RadioGroup
               defaultValue="member"
               name="role"
-              className="flex space-x-4"
+              className="flex gap-space-grid-6"
               disabled={!isOwner}
             >
-              <div className="flex items-center space-x-2 mt-2">
+              <div className="flex items-center gap-space-grid-2">
                 <RadioGroupItem value="member" id="member" />
-                <Label htmlFor="member">Member</Label>
+                <Label htmlFor="member" className="text-enterprise-sm">Member</Label>
               </div>
-              <div className="flex items-center space-x-2 mt-2">
+              <div className="flex items-center gap-space-grid-2">
                 <RadioGroupItem value="owner" id="owner" />
-                <Label htmlFor="owner">Owner</Label>
+                <Label htmlFor="owner" className="text-enterprise-sm">Owner</Label>
               </div>
             </RadioGroup>
           </div>
           {inviteState?.error && (
-            <p className="text-red-500">{inviteState.error}</p>
+            <div className="text-status-critical text-enterprise-sm bg-status-critical/10 p-3 rounded-professional-md border border-status-critical/20">
+              {inviteState.error}
+            </div>
           )}
           {inviteState?.success && (
-            <p className="text-green-500">{inviteState.success}</p>
+            <div className="text-status-success text-enterprise-sm bg-status-success/10 p-3 rounded-professional-md border border-status-success/20">
+              {inviteState.success}
+            </div>
           )}
           <Button
             type="submit"
-            className="bg-orange-500 hover:bg-orange-600 text-white"
+            variant="default"
+            size="lg"
+            loading={isInvitePending}
             disabled={isInvitePending || !isOwner}
           >
-            {isInvitePending ? (
-              <>
-                <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                Inviting...
-              </>
-            ) : (
-              <>
-                <PlusCircle className="mr-2 h-4 w-4" />
-                Invite Member
-              </>
-            )}
+            {!isInvitePending && <PlusCircle className="mr-2 h-4 w-4" />}
+            {isInvitePending ? 'Sending Invitation...' : 'Invite Member'}
           </Button>
         </form>
       </CardContent>
       {!isOwner && (
         <CardFooter>
-          <p className="text-sm text-muted-foreground">
-            You must be a team owner to invite new members.
-          </p>
+          <StatusIndicator
+            status="warning"
+            variant="minimal"
+            size="sm"
+            message="You must be a team owner to invite new members."
+          />
         </CardFooter>
       )}
     </Card>
@@ -271,17 +318,26 @@ function InviteTeamMember() {
 
 export default function SettingsPage() {
   return (
-    <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium mb-6">Team Settings</h1>
-      <Suspense fallback={<SubscriptionSkeleton />}>
-        <ManageSubscription />
-      </Suspense>
-      <Suspense fallback={<TeamMembersSkeleton />}>
-        <TeamMembers />
-      </Suspense>
-      <Suspense fallback={<InviteTeamMemberSkeleton />}>
-        <InviteTeamMember />
-      </Suspense>
+    <section className="flex-1 p-4 lg:p-8 space-y-space-grid-6">
+      <div className="flex items-center gap-space-grid-3">
+        <Settings className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
+        <h1 className="text-enterprise-2xl lg:text-enterprise-3xl font-semibold text-foreground">
+          Team Settings
+        </h1>
+      </div>
+      <div className="grid gap-space-grid-6 lg:grid-cols-2">
+        <div className="lg:col-span-2">
+          <Suspense fallback={<SubscriptionSkeleton />}>
+            <ManageSubscription />
+          </Suspense>
+        </div>
+        <Suspense fallback={<TeamMembersSkeleton />}>
+          <TeamMembers />
+        </Suspense>
+        <Suspense fallback={<InviteTeamMemberSkeleton />}>
+          <InviteTeamMember />
+        </Suspense>
+      </div>
     </section>
   );
 }

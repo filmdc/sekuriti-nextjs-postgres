@@ -4,7 +4,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Label } from '@/components/ui/label';
-import { Lock, Trash2, Loader2 } from 'lucide-react';
+import { Lock, Trash2, Loader2, Shield } from 'lucide-react';
 import { useActionState } from 'react';
 import { updatePassword, deleteAccount } from '@/app/(login)/actions';
 
@@ -34,18 +34,24 @@ export default function SecurityPage() {
   >(deleteAccount, {});
 
   return (
-    <section className="flex-1 p-4 lg:p-8">
-      <h1 className="text-lg lg:text-2xl font-medium bold text-gray-900 mb-6">
-        Security Settings
-      </h1>
-      <Card className="mb-8">
+    <section className="flex-1 p-4 lg:p-8 space-y-space-grid-6">
+      <div className="flex items-center gap-space-grid-3">
+        <Shield className="h-6 w-6 lg:h-8 lg:w-8 text-primary" />
+        <h1 className="text-enterprise-2xl lg:text-enterprise-3xl font-semibold text-foreground">
+          Security Settings
+        </h1>
+      </div>
+      <Card elevated>
         <CardHeader>
-          <CardTitle>Password</CardTitle>
+          <CardTitle className="flex items-center gap-space-grid-2">
+            <Lock className="h-5 w-5 text-muted-foreground" />
+            Password Management
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <form className="space-y-4" action={passwordAction}>
-            <div>
-              <Label htmlFor="current-password" className="mb-2">
+          <form className="space-y-space-grid-4" action={passwordAction}>
+            <div className="space-y-space-grid-2">
+              <Label htmlFor="current-password" className="text-enterprise-sm font-medium">
                 Current Password
               </Label>
               <Input
@@ -57,10 +63,11 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.currentPassword}
+                className="transition-professional focus-enterprise"
               />
             </div>
-            <div>
-              <Label htmlFor="new-password" className="mb-2">
+            <div className="space-y-space-grid-2">
+              <Label htmlFor="new-password" className="text-enterprise-sm font-medium">
                 New Password
               </Label>
               <Input
@@ -72,10 +79,11 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.newPassword}
+                className="transition-professional focus-enterprise"
               />
             </div>
-            <div>
-              <Label htmlFor="confirm-password" className="mb-2">
+            <div className="space-y-space-grid-2">
+              <Label htmlFor="confirm-password" className="text-enterprise-sm font-medium">
                 Confirm New Password
               </Label>
               <Input
@@ -86,47 +94,50 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={passwordState.confirmPassword}
+                className="transition-professional focus-enterprise"
               />
             </div>
             {passwordState.error && (
-              <p className="text-red-500 text-sm">{passwordState.error}</p>
+              <div className="text-status-critical text-enterprise-sm bg-status-critical/10 p-3 rounded-professional-md border border-status-critical/20">
+                {passwordState.error}
+              </div>
             )}
             {passwordState.success && (
-              <p className="text-green-500 text-sm">{passwordState.success}</p>
+              <div className="text-status-success text-enterprise-sm bg-status-success/10 p-3 rounded-professional-md border border-status-success/20">
+                {passwordState.success}
+              </div>
             )}
             <Button
               type="submit"
-              className="bg-orange-500 hover:bg-orange-600 text-white"
+              variant="default"
+              size="lg"
+              loading={isPasswordPending}
               disabled={isPasswordPending}
             >
-              {isPasswordPending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Updating...
-                </>
-              ) : (
-                <>
-                  <Lock className="mr-2 h-4 w-4" />
-                  Update Password
-                </>
-              )}
+              {!isPasswordPending && <Lock className="mr-2 h-4 w-4" />}
+              {isPasswordPending ? 'Updating...' : 'Update Password'}
             </Button>
           </form>
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-destructive/20">
         <CardHeader>
-          <CardTitle>Delete Account</CardTitle>
+          <CardTitle className="flex items-center gap-space-grid-2 text-destructive">
+            <Trash2 className="h-5 w-5" />
+            Danger Zone
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          <p className="text-sm text-gray-500 mb-4">
-            Account deletion is non-reversable. Please proceed with caution.
-          </p>
-          <form action={deleteAction} className="space-y-4">
-            <div>
-              <Label htmlFor="delete-password" className="mb-2">
-                Confirm Password
+          <div className="bg-destructive/5 p-4 rounded-professional-md border border-destructive/20 mb-space-grid-4">
+            <p className="text-enterprise-sm text-destructive font-medium">
+              ⚠️ Account deletion is non-reversible. Please proceed with caution.
+            </p>
+          </div>
+          <form action={deleteAction} className="space-y-space-grid-4">
+            <div className="space-y-space-grid-2">
+              <Label htmlFor="delete-password" className="text-enterprise-sm font-medium">
+                Confirm Password to Delete Account
               </Label>
               <Input
                 id="delete-password"
@@ -136,28 +147,23 @@ export default function SecurityPage() {
                 minLength={8}
                 maxLength={100}
                 defaultValue={deleteState.password}
+                className="transition-professional focus-enterprise"
               />
             </div>
             {deleteState.error && (
-              <p className="text-red-500 text-sm">{deleteState.error}</p>
+              <div className="text-status-critical text-enterprise-sm bg-status-critical/10 p-3 rounded-professional-md border border-status-critical/20">
+                {deleteState.error}
+              </div>
             )}
             <Button
               type="submit"
-              variant="destructive"
-              className="bg-red-600 hover:bg-red-700"
+              variant="danger"
+              size="lg"
+              loading={isDeletePending}
               disabled={isDeletePending}
             >
-              {isDeletePending ? (
-                <>
-                  <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                  Deleting...
-                </>
-              ) : (
-                <>
-                  <Trash2 className="mr-2 h-4 w-4" />
-                  Delete Account
-                </>
-              )}
+              {!isDeletePending && <Trash2 className="mr-2 h-4 w-4" />}
+              {isDeletePending ? 'Deleting Account...' : 'Delete Account'}
             </Button>
           </form>
         </CardContent>

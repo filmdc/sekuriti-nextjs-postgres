@@ -6,9 +6,12 @@ import { useSearchParams } from 'next/navigation';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
-import { CircleIcon, Loader2 } from 'lucide-react';
+import { CircleIcon } from 'lucide-react';
 import { signIn, signUp } from './actions';
 import { ActionState } from '@/lib/auth/middleware';
+import { EnhancedSubmitButton } from '@/components/ui/enhanced-submit-button';
+import { StatusIndicator } from '@/components/ui/status-indicator';
+import { useFormFeedback } from '@/components/feedback/feedback-provider';
 
 export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
   const searchParams = useSearchParams();
@@ -19,6 +22,8 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
     mode === 'signin' ? signIn : signUp,
     { error: '' }
   );
+
+  const formFeedback = useFormFeedback(`auth-${mode}`);
 
   return (
     <div className="min-h-[100dvh] flex flex-col justify-center py-12 px-4 sm:px-6 lg:px-8 bg-gray-50">
@@ -86,26 +91,23 @@ export function Login({ mode = 'signin' }: { mode?: 'signin' | 'signup' }) {
           </div>
 
           {state?.error && (
-            <div className="text-red-500 text-sm">{state.error}</div>
+            <StatusIndicator
+              status="error"
+              message={state.error}
+              variant="default"
+              size="sm"
+            />
           )}
 
           <div>
-            <Button
-              type="submit"
-              className="w-full flex justify-center items-center py-2 px-4 border border-transparent rounded-full shadow-sm text-sm font-medium text-white bg-orange-600 hover:bg-orange-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-orange-500"
-              disabled={pending}
+            <EnhancedSubmitButton
+              formId={`auth-${mode}`}
+              className="w-full rounded-full bg-orange-600 hover:bg-orange-700 focus:ring-orange-500"
+              pendingText={mode === 'signin' ? 'Signing in...' : 'Creating account...'}
+              successText={mode === 'signin' ? 'Welcome back!' : 'Account created!'}
             >
-              {pending ? (
-                <>
-                  <Loader2 className="animate-spin mr-2 h-4 w-4" />
-                  Loading...
-                </>
-              ) : mode === 'signin' ? (
-                'Sign in'
-              ) : (
-                'Sign up'
-              )}
-            </Button>
+              {mode === 'signin' ? 'Sign in' : 'Sign up'}
+            </EnhancedSubmitButton>
           </div>
         </form>
 
