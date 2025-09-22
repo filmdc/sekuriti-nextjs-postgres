@@ -9,7 +9,8 @@ import {
   Activity,
 } from 'lucide-react';
 import { db } from '@/lib/db/drizzle';
-import { teams, users, incidents } from '@/lib/db/schema';
+import { teams, users } from '@/lib/db/schema';
+import { incidents } from '@/lib/db/schema-ir';
 import { sql, eq } from 'drizzle-orm';
 
 async function getSystemStats() {
