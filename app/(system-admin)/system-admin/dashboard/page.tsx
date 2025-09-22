@@ -42,10 +42,9 @@ export default async function SystemAdminDashboard() {
     // License stats
     db.select({
       totalLicenses: sql<number>`sum(license_count)`,
-      usedLicenses: sql<number>`count(distinct tm.user_id)`,
+      usedLicenses: sql<number>`(select count(distinct user_id) from team_members)`,
       avgLicensesPerOrg: sql<number>`avg(license_count)`,
-    }).from(teams)
-    .leftJoin(teams, eq(teams.id, teams.id)),
+    }).from(teams),
 
     // Recent organizations
     db.select({

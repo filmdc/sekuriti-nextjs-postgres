@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { db } from '@/lib/db/drizzle';
-import { users, systemAuditLogs, ActivityType } from '@/lib/db/schema';
+import { users, ActivityType } from '@/lib/db/schema';
+import { systemAuditLogs } from '@/lib/db/schema-system';
 import { eq } from 'drizzle-orm';
 import { cookies } from 'next/headers';
 import { redirect } from 'next/navigation';

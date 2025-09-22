@@ -97,6 +97,11 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     return createCheckoutSession({ team: foundTeam, priceId });
   }
 
+  // Check if user is system admin and redirect accordingly
+  if (foundUser.isSystemAdmin) {
+    redirect('/system-admin/dashboard');
+  }
+
   redirect('/dashboard');
 });
 
