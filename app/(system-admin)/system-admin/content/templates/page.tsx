@@ -188,7 +188,7 @@ export default function ContentTemplatesPage() {
                           <div className="flex gap-1 flex-wrap">
                             {template.variables.slice(0, 2).map((v) => (
                               <Badge key={v} variant="secondary" className="text-xs">
-                                {{{v}}}
+                                {`{${v}}`}
                               </Badge>
                             ))}
                             {template.variables.length > 2 && (
@@ -251,7 +251,7 @@ export default function ContentTemplatesPage() {
                   ].map((variable) => (
                     <div key={variable.name} className="border rounded-lg p-4">
                       <div className="flex justify-between items-start mb-2">
-                        <Badge variant="secondary">{{{variable.name}}}</Badge>
+                        <Badge variant="secondary">{`{${variable.name}}`}</Badge>
                         <Button size="sm" variant="ghost">
                           <Edit className="h-3 w-3" />
                         </Button>
