@@ -59,71 +59,70 @@ interface LicenseAllocation {
   licenseType: string;
   totalLicenses: number;
   usedLicenses: number;
-  expiryDate: string;
-  status: 'active' | 'expired' | 'suspended';
-  billingCycle: 'monthly' | 'yearly';
-  cost: number;
+  status: string;
+  planName?: string;
+  billingCycle?: string;
+  createdAt?: string;
+  stripeStatus?: string;
+}
+
+interface LicenseStats {
+  totalOrganizations: number;
+  totalLicenses: number;
+  usedLicenses: number;
+  overAllocated: number;
 }
 
 export default function LicenseManagementPage() {
   const { toast } = useToast();
-  const [loading, setLoading] = useState(false);
-  const [allocations, setAllocations] = useState<LicenseAllocation[]>([
-    {
-      id: 1,
-      organizationId: 1,
-      organizationName: 'Acme Corp',
-      licenseType: 'Enterprise',
-      totalLicenses: 100,
-      usedLicenses: 87,
-      expiryDate: '2025-12-31',
-      status: 'active',
-      billingCycle: 'yearly',
-      cost: 9999,
-    },
-    {
-      id: 2,
-      organizationId: 2,
-      organizationName: 'Tech Solutions',
-      licenseType: 'Professional',
-      totalLicenses: 50,
-      usedLicenses: 45,
-      expiryDate: '2025-06-30',
-      status: 'active',
-      billingCycle: 'monthly',
-      cost: 499,
-    },
-    {
-      id: 3,
-      organizationId: 3,
-      organizationName: 'StartupCo',
-      licenseType: 'Starter',
-      totalLicenses: 10,
-      usedLicenses: 12,
-      expiryDate: '2025-03-31',
-      status: 'active',
-      billingCycle: 'monthly',
-      cost: 99,
-    },
-  ]);
+  const [loading, setLoading] = useState(true);
+  const [allocations, setAllocations] = useState<LicenseAllocation[]>([]);
+  const [stats, setStats] = useState<LicenseStats>({
+    totalOrganizations: 0,
+    totalLicenses: 0,
+    usedLicenses: 0,
+    overAllocated: 0,
+  });
+
+  useEffect(() => {
+    fetchLicenseData();
+  }, []);
+
+  const fetchLicenseData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/system-admin/licenses');
+      if (response.ok) {
+        const data = await response.json();
+        setAllocations(data.allocations || []);
+        setStats(data.stats || {
+          totalOrganizations: 0,
+          totalLicenses: 0,
+          usedLicenses: 0,
+          overAllocated: 0,
+        });
+      } else {
+        throw new Error('Failed to fetch license data');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const [adjustOpen, setAdjustOpen] = useState(false);
   const [selectedAllocation, setSelectedAllocation] = useState<LicenseAllocation | null>(null);
   const [adjustmentAmount, setAdjustmentAmount] = useState(0);
   const [adjustmentReason, setAdjustmentReason] = useState('');
 
-  // Stats
-  const totalLicenses = allocations.reduce((sum, a) => sum + a.totalLicenses, 0);
-  const usedLicenses = allocations.reduce((sum, a) => sum + a.usedLicenses, 0);
-  const overAllocated = allocations.filter(a => a.usedLicenses > a.totalLicenses).length;
-  const expiringIn30Days = allocations.filter(a => {
-    const expiryDate = new Date(a.expiryDate);
-    const thirtyDaysFromNow = new Date();
-    thirtyDaysFromNow.setDate(thirtyDaysFromNow.getDate() + 30);
-    return expiryDate <= thirtyDaysFromNow && a.status === 'active';
-  }).length;
+  // No need to calculate stats here as we get them from the API
 
-  const handleAdjustLicenses = () => {
+  const handleAdjustLicenses = async () => {
     if (!selectedAllocation || adjustmentAmount === 0) return;
 
     const newTotal = selectedAllocation.totalLicenses + adjustmentAmount;
@@ -137,16 +136,33 @@ export default function LicenseManagementPage() {
       return;
     }
 
-    setAllocations(prev => prev.map(a =>
-      a.id === selectedAllocation.id
-        ? { ...a, totalLicenses: newTotal }
-        : a
-    ));
+    try {
+      const response = await fetch('/api/system-admin/licenses', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          organizationId: selectedAllocation.organizationId,
+          licenseCount: newTotal,
+          licenseType: selectedAllocation.licenseType,
+        }),
+      });
 
-    toast({
-      title: 'Success',
-      description: `Adjusted licenses for ${selectedAllocation.organizationName}`,
-    });
+      if (response.ok) {
+        toast({
+          title: 'Success',
+          description: `Adjusted licenses for ${selectedAllocation.organizationName}`,
+        });
+        fetchLicenseData(); // Refresh the data
+      } else {
+        throw new Error('Failed to update licenses');
+      }
+    } catch (error: any) {
+      toast({
+        title: 'Error',
+        description: error.message,
+        variant: 'destructive',
+      });
+    }
 
     setAdjustOpen(false);
     setSelectedAllocation(null);
@@ -208,7 +224,7 @@ export default function LicenseManagementPage() {
             <Key className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{totalLicenses}</div>
+            <div className="text-2xl font-bold">{stats.totalLicenses}</div>
             <p className="text-xs text-muted-foreground">
               Across all organizations
             </p>
@@ -220,10 +236,10 @@ export default function LicenseManagementPage() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{usedLicenses}</div>
-            <Progress value={(usedLicenses / totalLicenses) * 100} className="mt-2" />
+            <div className="text-2xl font-bold">{stats.usedLicenses}</div>
+            <Progress value={stats.totalLicenses > 0 ? (stats.usedLicenses / stats.totalLicenses) * 100 : 0} className="mt-2" />
             <p className="text-xs text-muted-foreground mt-1">
-              {Math.round((usedLicenses / totalLicenses) * 100)}% utilization
+              {stats.totalLicenses > 0 ? Math.round((stats.usedLicenses / stats.totalLicenses) * 100) : 0}% utilization
             </p>
           </CardContent>
         </Card>
@@ -233,7 +249,7 @@ export default function LicenseManagementPage() {
             <AlertTriangle className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-red-600">{overAllocated}</div>
+            <div className="text-2xl font-bold text-red-600">{stats.overAllocated}</div>
             <p className="text-xs text-muted-foreground">
               Organizations exceeding limit
             </p>
@@ -245,9 +261,9 @@ export default function LicenseManagementPage() {
             <Calendar className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold text-yellow-600">{expiringIn30Days}</div>
+            <div className="text-2xl font-bold">{stats.totalOrganizations}</div>
             <p className="text-xs text-muted-foreground">
-              Within 30 days
+              Total organizations
             </p>
           </CardContent>
         </Card>
@@ -316,105 +332,103 @@ export default function LicenseManagementPage() {
                 <TableHead>License Type</TableHead>
                 <TableHead>Usage</TableHead>
                 <TableHead>Status</TableHead>
-                <TableHead>Expiry</TableHead>
-                <TableHead>Cost</TableHead>
+                <TableHead>Plan</TableHead>
+                <TableHead>Created</TableHead>
                 <TableHead className="text-right">Actions</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
-              {allocations.map((allocation) => {
-                const usagePercent = (allocation.usedLicenses / allocation.totalLicenses) * 100;
-                const isOverAllocated = allocation.usedLicenses > allocation.totalLicenses;
-                const daysUntilExpiry = Math.ceil(
-                  (new Date(allocation.expiryDate).getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24)
-                );
+              {loading ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8">
+                    <Loader2 className="h-8 w-8 animate-spin mx-auto" />
+                  </TableCell>
+                </TableRow>
+              ) : allocations.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No organizations found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                allocations.map((allocation) => {
+                  const usagePercent = allocation.totalLicenses > 0
+                    ? (allocation.usedLicenses / allocation.totalLicenses) * 100
+                    : 0;
+                  const isOverAllocated = allocation.usedLicenses > allocation.totalLicenses;
 
-                return (
-                  <TableRow key={allocation.id}>
-                    <TableCell>
-                      <div className="flex items-center">
-                        <Building className="h-4 w-4 mr-2 text-muted-foreground" />
-                        <div>
-                          <p className="font-medium">{allocation.organizationName}</p>
-                          <p className="text-xs text-muted-foreground">ID: {allocation.organizationId}</p>
+                  return (
+                    <TableRow key={allocation.id}>
+                      <TableCell>
+                        <div className="flex items-center">
+                          <Building className="h-4 w-4 mr-2 text-muted-foreground" />
+                          <div>
+                            <p className="font-medium">{allocation.organizationName}</p>
+                            <p className="text-xs text-muted-foreground">ID: {allocation.organizationId}</p>
+                          </div>
                         </div>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant="outline">{allocation.licenseType}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <span className={`font-medium ${isOverAllocated ? 'text-red-600' : ''}`}>
-                            {allocation.usedLicenses} / {allocation.totalLicenses}
-                          </span>
-                          {isOverAllocated && (
-                            <Badge variant="destructive" className="text-xs">
-                              Over limit
-                            </Badge>
-                          )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{allocation.licenseType || 'Standard'}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="space-y-1">
+                          <div className="flex items-center gap-2">
+                            <span className={`font-medium ${isOverAllocated ? 'text-red-600' : ''}`}>
+                              {allocation.usedLicenses} / {allocation.totalLicenses}
+                            </span>
+                            {isOverAllocated && (
+                              <Badge variant="destructive" className="text-xs">
+                                Over limit
+                              </Badge>
+                            )}
+                          </div>
+                          <Progress
+                            value={Math.min(usagePercent, 100)}
+                            className={`h-2 ${isOverAllocated ? '[&>div]:bg-red-600' : ''}`}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            {Math.round(usagePercent)}% utilized
+                          </p>
                         </div>
-                        <Progress
-                          value={Math.min(usagePercent, 100)}
-                          className={`h-2 ${isOverAllocated ? '[&>div]:bg-red-600' : ''}`}
-                        />
-                        <p className="text-xs text-muted-foreground">
-                          {Math.round(usagePercent)}% utilized
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      {allocation.status === 'active' ? (
+                      </TableCell>
+                      <TableCell>
                         <Badge variant="outline" className="text-green-600">
                           <CheckCircle className="h-3 w-3 mr-1" />
-                          Active
+                          {allocation.status || 'Active'}
                         </Badge>
-                      ) : allocation.status === 'expired' ? (
-                        <Badge variant="outline" className="text-red-600">
-                          <XCircle className="h-3 w-3 mr-1" />
-                          Expired
-                        </Badge>
-                      ) : (
-                        <Badge variant="outline" className="text-yellow-600">
-                          <AlertTriangle className="h-3 w-3 mr-1" />
-                          Suspended
-                        </Badge>
-                      )}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="text-sm">{new Date(allocation.expiryDate).toLocaleDateString()}</p>
-                        {daysUntilExpiry <= 30 && daysUntilExpiry > 0 && (
-                          <p className="text-xs text-yellow-600">
-                            {daysUntilExpiry} days left
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm">{allocation.planName || 'Free'}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {allocation.billingCycle || 'N/A'}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        {allocation.createdAt && (
+                          <p className="text-sm">
+                            {new Date(allocation.createdAt).toLocaleDateString()}
                           </p>
                         )}
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">${allocation.cost}</p>
-                        <p className="text-xs text-muted-foreground">
-                          per {allocation.billingCycle === 'monthly' ? 'month' : 'year'}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => {
-                          setSelectedAllocation(allocation);
-                          setAdjustOpen(true);
-                        }}
-                      >
-                        Adjust
-                      </Button>
-                    </TableCell>
-                  </TableRow>
-                );
-              })}
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          onClick={() => {
+                            setSelectedAllocation(allocation);
+                            setAdjustOpen(true);
+                          }}
+                        >
+                          Adjust
+                        </Button>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })
+              )}
             </TableBody>
           </Table>
         </CardContent>

@@ -1,7 +1,8 @@
+'use client';
+
+import { useState, useEffect } from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { db } from '@/lib/db/drizzle';
-import { teams, users, incidents, assets } from '@/lib/db/schema';
-import { sql, eq, gte, and } from 'drizzle-orm';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Building2,
   Users,
@@ -12,57 +13,99 @@ import {
   DollarSign,
   Shield,
   Clock,
-  CheckCircle
+  CheckCircle,
+  Loader2
 } from 'lucide-react';
 
-export default async function SystemAdminDashboard() {
-  // Get system-wide statistics
-  const [
-    organizationStats,
-    userStats,
-    licenseStats,
-    recentOrgs,
-  ] = await Promise.all([
-    // Organization stats
-    db.select({
-      total: sql<number>`count(*)`,
-      active: sql<number>`count(case when status = 'active' then 1 end)`,
-      trial: sql<number>`count(case when status = 'trial' then 1 end)`,
-      suspended: sql<number>`count(case when status = 'suspended' then 1 end)`,
-    }).from(teams),
+interface DashboardStats {
+  organizations: {
+    total: number;
+    active: number;
+    newThisMonth: number;
+    growth: number;
+  };
+  users: {
+    total: number;
+    verified: number;
+    systemAdmins: number;
+    newThisWeek: number;
+  };
+  licenses: {
+    total: number;
+    average: number;
+  };
+  revenue: {
+    mrr: number;
+    subscribedOrgs: number;
+  };
+  activity: {
+    recentActions: number;
+  };
+}
 
-    // User stats
-    db.select({
-      total: sql<number>`count(*)`,
-      systemAdmins: sql<number>`count(case when is_system_admin = true then 1 end)`,
-      orgAdmins: sql<number>`count(case when is_organization_admin = true then 1 end)`,
-      activeToday: sql<number>`count(case when last_login_at >= current_date then 1 end)`,
-    }).from(users),
+interface RecentOrganization {
+  id: number;
+  name: string;
+  status: string;
+  createdAt: string;
+  userCount: number;
+}
 
-    // License stats
-    db.select({
-      totalLicenses: sql<number>`sum(license_count)`,
-      usedLicenses: sql<number>`(select count(distinct user_id) from team_members)`,
-      avgLicensesPerOrg: sql<number>`avg(license_count)`,
-    }).from(teams),
+interface SystemHealth {
+  apiStatus: string;
+  databaseStatus: string;
+  queueStatus: string;
+  lastBackup: string;
+}
 
-    // Recent organizations
-    db.select({
-      id: teams.id,
-      name: teams.name,
-      status: teams.status,
-      licenseType: teams.licenseType,
-      createdAt: teams.createdAt,
-      userCount: sql<number>`(select count(*) from team_members where team_id = teams.id)`,
-    })
-    .from(teams)
-    .orderBy(sql`created_at desc`)
-    .limit(5),
-  ]);
+export default function SystemAdminDashboard() {
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState<DashboardStats | null>(null);
+  const [recentOrganizations, setRecentOrganizations] = useState<RecentOrganization[]>([]);
+  const [systemHealth, setSystemHealth] = useState<SystemHealth | null>(null);
 
-  const orgStat = organizationStats[0];
-  const userStat = userStats[0];
-  const licenseStat = licenseStats[0];
+  useEffect(() => {
+    fetchDashboardData();
+  }, []);
+
+  const fetchDashboardData = async () => {
+    try {
+      const response = await fetch('/api/system-admin/dashboard');
+      if (!response.ok) {
+        throw new Error('Failed to fetch dashboard data');
+      }
+      const data = await response.json();
+      setStats(data.stats);
+      setRecentOrganizations(data.recentOrganizations);
+      setSystemHealth(data.systemHealth);
+    } catch (error) {
+      console.error('Error fetching dashboard:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load dashboard data',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center min-h-[400px]">
+        <Loader2 className="h-12 w-12 animate-spin" />
+      </div>
+    );
+  }
+
+  if (!stats) {
+    return (
+      <div className="text-center py-8">
+        <p className="text-muted-foreground">Failed to load dashboard data</p>
+      </div>
+    );
+  }
 
   return (
     <div className="space-y-6">
@@ -82,16 +125,16 @@ export default async function SystemAdminDashboard() {
             <Building2 className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{orgStat.total}</div>
+            <div className="text-2xl font-bold">{stats.organizations.total}</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <span className="flex items-center text-green-600">
                 <CheckCircle className="h-3 w-3 mr-1" />
-                {orgStat.active} active
+                {stats.organizations.active} active
               </span>
               <span>•</span>
-              <span className="flex items-center text-yellow-600">
-                <Clock className="h-3 w-3 mr-1" />
-                {orgStat.trial} trial
+              <span className="flex items-center text-blue-600">
+                <TrendingUp className="h-3 w-3 mr-1" />
+                +{stats.organizations.growth}%
               </span>
             </div>
           </CardContent>
@@ -103,11 +146,11 @@ export default async function SystemAdminDashboard() {
             <Users className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStat.total}</div>
+            <div className="text-2xl font-bold">{stats.users.total}</div>
             <div className="flex items-center space-x-2 text-xs text-muted-foreground">
               <span className="flex items-center text-blue-600">
                 <Activity className="h-3 w-3 mr-1" />
-                {userStat.activeToday} active today
+                {stats.users.verified} verified
               </span>
             </div>
           </CardContent>
@@ -115,15 +158,15 @@ export default async function SystemAdminDashboard() {
 
         <Card>
           <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">License Utilization</CardTitle>
-            <Package className="h-4 w-4 text-muted-foreground" />
+            <CardTitle className="text-sm font-medium">Monthly Revenue</CardTitle>
+            <DollarSign className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
             <div className="text-2xl font-bold">
-              {licenseStat.usedLicenses || 0}/{licenseStat.totalLicenses || 0}
+              ${stats.revenue.mrr.toLocaleString()}
             </div>
             <div className="text-xs text-muted-foreground">
-              {Math.round((licenseStat.usedLicenses || 0) / (licenseStat.totalLicenses || 1) * 100)}% utilized
+              {stats.revenue.subscribedOrgs} subscribed orgs
             </div>
           </CardContent>
         </Card>
@@ -134,9 +177,9 @@ export default async function SystemAdminDashboard() {
             <Shield className="h-4 w-4 text-muted-foreground" />
           </CardHeader>
           <CardContent>
-            <div className="text-2xl font-bold">{userStat.systemAdmins}</div>
+            <div className="text-2xl font-bold">{stats.users.systemAdmins}</div>
             <div className="text-xs text-muted-foreground">
-              {userStat.orgAdmins} organization admins
+              Platform administrators
             </div>
           </CardContent>
         </Card>
@@ -153,7 +196,7 @@ export default async function SystemAdminDashboard() {
           </CardHeader>
           <CardContent>
             <div className="space-y-4">
-              {recentOrgs.map((org) => (
+              {recentOrganizations.map((org) => (
                 <div key={org.id} className="flex items-center justify-between">
                   <div className="flex items-center space-x-4">
                     <div className="p-2 bg-gray-100 dark:bg-gray-800 rounded-lg">
@@ -162,7 +205,7 @@ export default async function SystemAdminDashboard() {
                     <div>
                       <p className="text-sm font-medium">{org.name}</p>
                       <p className="text-xs text-muted-foreground">
-                        {org.licenseType || 'Standard'} • {org.userCount} users
+                        {org.userCount} users
                       </p>
                     </div>
                   </div>
@@ -191,43 +234,46 @@ export default async function SystemAdminDashboard() {
             </CardDescription>
           </CardHeader>
           <CardContent>
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm">API Status</span>
+            {systemHealth && (
+              <div className="space-y-4">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 ${systemHealth.apiStatus === 'operational' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`} />
+                    <span className="text-sm">API Status</span>
+                  </div>
+                  <span className={`text-sm ${systemHealth.apiStatus === 'operational' ? 'text-green-600' : 'text-red-600'}`}>
+                    {systemHealth.apiStatus === 'operational' ? 'Operational' : 'Issues'}
+                  </span>
                 </div>
-                <span className="text-sm text-green-600">Operational</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm">Database</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 ${systemHealth.databaseStatus === 'operational' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`} />
+                    <span className="text-sm">Database</span>
+                  </div>
+                  <span className={`text-sm ${systemHealth.databaseStatus === 'operational' ? 'text-green-600' : 'text-red-600'}`}>
+                    {systemHealth.databaseStatus === 'operational' ? 'Healthy' : 'Issues'}
+                  </span>
                 </div>
-                <span className="text-sm text-green-600">Healthy</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-yellow-500 rounded-full animate-pulse" />
-                  <span className="text-sm">Storage</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 ${systemHealth.queueStatus === 'operational' ? 'bg-green-500' : 'bg-red-500'} rounded-full animate-pulse`} />
+                    <span className="text-sm">Queue Service</span>
+                  </div>
+                  <span className={`text-sm ${systemHealth.queueStatus === 'operational' ? 'text-green-600' : 'text-red-600'}`}>
+                    {systemHealth.queueStatus === 'operational' ? 'Active' : 'Issues'}
+                  </span>
                 </div>
-                <span className="text-sm text-yellow-600">75% Used</span>
-              </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm">Email Service</span>
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center space-x-2">
+                    <Clock className="h-3 w-3 text-muted-foreground" />
+                    <span className="text-sm">Last Backup</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">
+                    {new Date(systemHealth.lastBackup).toLocaleTimeString()}
+                  </span>
                 </div>
-                <span className="text-sm text-green-600">Connected</span>
               </div>
-              <div className="flex items-center justify-between">
-                <div className="flex items-center space-x-2">
-                  <div className="h-2 w-2 bg-green-500 rounded-full animate-pulse" />
-                  <span className="text-sm">Stripe</span>
-                </div>
-                <span className="text-sm text-green-600">Connected</span>
-              </div>
-            </div>
+            )}
           </CardContent>
         </Card>
       </div>

@@ -21,6 +21,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Label } from '@/components/ui/label';
+import { useToast } from '@/components/ui/use-toast';
 import {
   Activity,
   Calendar,
@@ -66,56 +67,17 @@ interface ActivityStats {
 }
 
 export default function UserActivityPage() {
-  const [loading, setLoading] = useState(false);
-  const [activities, setActivities] = useState<UserActivity[]>([
-    {
-      id: 1,
-      userId: 1,
-      userName: 'John Doe',
-      userEmail: 'john@example.com',
-      action: 'SIGN_IN',
-      ipAddress: '192.168.1.1',
-      userAgent: 'Chrome/120.0.0',
-      organizationId: 1,
-      organizationName: 'Acme Corp',
-      success: true,
-      timestamp: new Date().toISOString(),
-    },
-    {
-      id: 2,
-      userId: 2,
-      userName: 'Jane Smith',
-      userEmail: 'jane@example.com',
-      action: 'UPDATE_PASSWORD',
-      ipAddress: '192.168.1.2',
-      userAgent: 'Safari/17.0',
-      organizationId: 1,
-      organizationName: 'Acme Corp',
-      success: true,
-      timestamp: new Date(Date.now() - 3600000).toISOString(),
-    },
-    {
-      id: 3,
-      userId: 3,
-      userName: 'Bob Wilson',
-      userEmail: 'bob@example.com',
-      action: 'SIGN_IN',
-      ipAddress: '192.168.1.3',
-      userAgent: 'Firefox/120.0',
-      organizationId: 2,
-      organizationName: 'Tech Solutions',
-      success: false,
-      timestamp: new Date(Date.now() - 7200000).toISOString(),
-    },
-  ]);
-
-  const [stats] = useState<ActivityStats>({
-    totalLogins: 1234,
-    failedLogins: 45,
-    activeUsers: 892,
-    newSignups: 23,
-    passwordResets: 12,
+  const { toast } = useToast();
+  const [loading, setLoading] = useState(true);
+  const [activities, setActivities] = useState<UserActivity[]>([]);
+  const [stats, setStats] = useState<ActivityStats>({
+    totalLogins: 0,
+    failedLogins: 0,
+    activeUsers: 0,
+    newSignups: 0,
+    passwordResets: 0,
   });
+  const [securityAlerts, setSecurityAlerts] = useState<any[]>([]);
 
   const [filters, setFilters] = useState({
     search: '',
@@ -128,7 +90,48 @@ export default function UserActivityPage() {
 
   // Pagination
   const [currentPage, setCurrentPage] = useState(1);
-  const [totalPages] = useState(5);
+  const [totalPages, setTotalPages] = useState(1);
+  const [totalItems, setTotalItems] = useState(0);
+
+  useEffect(() => {
+    fetchActivityData();
+  }, [currentPage, filters]);
+
+  const fetchActivityData = async () => {
+    setLoading(true);
+    try {
+      const params = new URLSearchParams({
+        page: currentPage.toString(),
+        limit: '50',
+        search: filters.search,
+        action: filters.action !== 'all' ? filters.action : '',
+        dateFrom: filters.dateFrom,
+        dateTo: filters.dateTo,
+      });
+
+      const response = await fetch(`/api/system-admin/activity?${params}`);
+      if (!response.ok) {
+        throw new Error('Failed to fetch activity data');
+      }
+
+      const data = await response.json();
+      setActivities(data.activities || []);
+      setStats(data.stats || {
+        totalLogins: 0,
+        failedLogins: 0,
+        activeUsers: 0,
+        newSignups: 0,
+        passwordResets: 0,
+      });
+      setTotalPages(data.pagination?.totalPages || 1);
+      setTotalItems(data.pagination?.totalItems || 0);
+      setSecurityAlerts(data.securityAlerts || []);
+    } catch (error) {
+      console.error('Error fetching activity:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const getActionIcon = (action: string) => {
     switch (action) {
@@ -163,6 +166,11 @@ export default function UserActivityPage() {
       default:
         return 'bg-gray-100 text-gray-800';
     }
+  };
+
+  const handleFilterChange = (newFilters: typeof filters) => {
+    setFilters(newFilters);
+    setCurrentPage(1);
   };
 
   const exportActivities = () => {
@@ -271,11 +279,11 @@ export default function UserActivityPage() {
               <Input
                 placeholder="Search users..."
                 value={filters.search}
-                onChange={(e) => setFilters({ ...filters, search: e.target.value })}
+                onChange={(e) => handleFilterChange({ ...filters, search: e.target.value })}
                 className="pl-8"
               />
             </div>
-            <Select value={filters.action} onValueChange={(value) => setFilters({ ...filters, action: value })}>
+            <Select value={filters.action} onValueChange={(value) => handleFilterChange({ ...filters, action: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Action" />
               </SelectTrigger>
@@ -287,7 +295,7 @@ export default function UserActivityPage() {
                 <SelectItem value="CREATE_ACCOUNT">Create Account</SelectItem>
               </SelectContent>
             </Select>
-            <Select value={filters.status} onValueChange={(value) => setFilters({ ...filters, status: value })}>
+            <Select value={filters.status} onValueChange={(value) => handleFilterChange({ ...filters, status: value })}>
               <SelectTrigger>
                 <SelectValue placeholder="Status" />
               </SelectTrigger>
@@ -300,19 +308,19 @@ export default function UserActivityPage() {
             <Input
               type="date"
               value={filters.dateFrom}
-              onChange={(e) => setFilters({ ...filters, dateFrom: e.target.value })}
+              onChange={(e) => handleFilterChange({ ...filters, dateFrom: e.target.value })}
               placeholder="From Date"
             />
             <Input
               type="date"
               value={filters.dateTo}
-              onChange={(e) => setFilters({ ...filters, dateTo: e.target.value })}
+              onChange={(e) => handleFilterChange({ ...filters, dateTo: e.target.value })}
               placeholder="To Date"
             />
             <Button
               variant="outline"
               onClick={() =>
-                setFilters({
+                handleFilterChange({
                   search: '',
                   action: 'all',
                   status: 'all',
@@ -328,7 +336,14 @@ export default function UserActivityPage() {
         </CardContent>
       </Card>
 
+      {loading && (
+        <div className="flex items-center justify-center py-8">
+          <Loader2 className="h-8 w-8 animate-spin" />
+        </div>
+      )}
+
       {/* Activity Table */}
+      {!loading && (
       <Card>
         <CardHeader>
           <CardTitle>Activity Log</CardTitle>
@@ -392,10 +407,18 @@ export default function UserActivityPage() {
                   </TableCell>
                 </TableRow>
               ))}
+              {!loading && activities.length === 0 && (
+                <TableRow>
+                  <TableCell colSpan={7} className="text-center py-8 text-muted-foreground">
+                    No activity found
+                  </TableCell>
+                </TableRow>
+              )}
             </TableBody>
           </Table>
         </CardContent>
       </Card>
+      )}
 
       {/* Pagination */}
       {totalPages > 1 && (
@@ -427,6 +450,7 @@ export default function UserActivityPage() {
       )}
 
       {/* Security Alerts */}
+      {securityAlerts.length > 0 && (
       <Card className="border-yellow-200 bg-yellow-50 dark:border-yellow-900 dark:bg-yellow-900/20">
         <CardHeader>
           <CardTitle className="flex items-center text-yellow-800 dark:text-yellow-200">
@@ -436,21 +460,18 @@ export default function UserActivityPage() {
         </CardHeader>
         <CardContent>
           <div className="space-y-2 text-sm text-yellow-800 dark:text-yellow-200">
-            <div className="flex items-center justify-between">
-              <span>Multiple failed login attempts from IP 192.168.1.3</span>
-              <Badge variant="destructive">3 attempts</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>Unusual login time detected for user jane@example.com</span>
-              <Badge variant="outline">Review</Badge>
-            </div>
-            <div className="flex items-center justify-between">
-              <span>New device login for user john@example.com</span>
-              <Badge variant="outline">Monitor</Badge>
-            </div>
+            {securityAlerts.map((alert, index) => (
+              <div key={index} className="flex items-center justify-between">
+                <span>{alert.message}</span>
+                <Badge variant={alert.type === 'failed_logins' ? 'destructive' : 'outline'}>
+                  {alert.count ? `${alert.count} attempts` : 'Review'}
+                </Badge>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
+      )}
     </div>
   );
 }
