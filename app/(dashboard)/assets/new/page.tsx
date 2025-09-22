@@ -1,4 +1,4 @@
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssetGroupsFlat } from '@/lib/db/queries-groups';
 import { getTagsByOrganization } from '@/lib/db/queries-tags';
 import { createAssetAction } from '@/lib/actions/assets';
@@ -20,8 +20,8 @@ import { ArrowLeft, Save } from 'lucide-react';
 import Link from 'next/link';
 
 export default async function NewAssetPage() {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to create assets</p>
@@ -30,8 +30,8 @@ export default async function NewAssetPage() {
   }
 
   const [groups, tags] = await Promise.all([
-    getAssetGroupsFlat(user.teamId),
-    getTagsByOrganization(user.teamId)
+    getAssetGroupsFlat(team.id),
+    getTagsByOrganization(team.id)
   ]);
 
   return (

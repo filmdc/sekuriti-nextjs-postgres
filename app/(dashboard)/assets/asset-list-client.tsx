@@ -303,14 +303,14 @@ export function AssetListClient({
                 {/* Filter Controls */}
                 <div className="flex gap-2">
                   <Select
-                    value={initialFilters.type || ''}
-                    onValueChange={(value) => updateSearchParams({ type: value || null })}
+                    value={initialFilters.type || 'all'}
+                    onValueChange={(value) => updateSearchParams({ type: value === 'all' ? null : value })}
                   >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="All Types" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Types</SelectItem>
+                      <SelectItem value="all">All Types</SelectItem>
                       <SelectItem value="hardware">Hardware</SelectItem>
                       <SelectItem value="software">Software</SelectItem>
                       <SelectItem value="service">Service</SelectItem>
@@ -323,14 +323,14 @@ export function AssetListClient({
                   </Select>
 
                   <Select
-                    value={initialFilters.criticality || ''}
-                    onValueChange={(value) => updateSearchParams({ criticality: value || null })}
+                    value={initialFilters.criticality || 'all'}
+                    onValueChange={(value) => updateSearchParams({ criticality: value === 'all' ? null : value })}
                   >
                     <SelectTrigger className="w-[150px]">
                       <SelectValue placeholder="All Criticality" />
                     </SelectTrigger>
                     <SelectContent>
-                      <SelectItem value="">All Criticality</SelectItem>
+                      <SelectItem value="all">All Criticality</SelectItem>
                       <SelectItem value="low">Low</SelectItem>
                       <SelectItem value="medium">Medium</SelectItem>
                       <SelectItem value="high">High</SelectItem>

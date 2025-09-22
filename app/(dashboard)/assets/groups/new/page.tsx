@@ -20,8 +20,9 @@ import Link from 'next/link';
 export default async function NewAssetGroupPage({
   searchParams
 }: {
-  searchParams: { parent?: string };
+  searchParams: Promise<{ parent?: string }>;
 }) {
+  const params = await searchParams;
   const team = await getTeamForUser();
   if (!team) {
     return (
@@ -32,7 +33,7 @@ export default async function NewAssetGroupPage({
   }
 
   const groups = await getAssetGroupsFlat(team.id);
-  const parentId = searchParams.parent ? parseInt(searchParams.parent) : undefined;
+  const parentId = params.parent ? parseInt(params.parent) : undefined;
   const parentGroup = parentId ? groups.find(g => g.id === parentId) : undefined;
 
   return (
@@ -165,12 +166,7 @@ export default async function NewAssetGroupPage({
                     defaultValue="#6B7280"
                     pattern="^#[0-9A-Fa-f]{6}$"
                     className="flex-1"
-                    onChange={(e) => {
-                      const colorInput = document.getElementById('color') as HTMLInputElement;
-                      if (colorInput && e.target.value.match(/^#[0-9A-Fa-f]{6}$/)) {
-                        colorInput.value = e.target.value;
-                      }
-                    }}
+                    placeholder="#6B7280"
                   />
                 </div>
               </div>

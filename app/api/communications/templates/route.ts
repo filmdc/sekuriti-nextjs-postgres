@@ -3,12 +3,12 @@ import { db } from '@/lib/db';
 import { communicationTemplates } from '@/lib/db/schema-ir';
 import { tags, taggables } from '@/lib/db/schema-tags';
 import { eq, and, or, isNull, desc, asc, like } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs';
+import { getUser } from '@/lib/db/queries';
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -24,12 +24,12 @@ export async function GET(request: NextRequest) {
     if (includeSystem) {
       conditions.push(
         or(
-          eq(communicationTemplates.organizationId, parseInt(orgId || '0')),
+          eq(communicationTemplates.organizationId, user.teamId),
           isNull(communicationTemplates.organizationId)
         )
       );
     } else {
-      conditions.push(eq(communicationTemplates.organizationId, parseInt(orgId || '0')));
+      conditions.push(eq(communicationTemplates.organizationId, user.teamId));
     }
 
     // Filter by category
@@ -89,8 +89,8 @@ export async function GET(request: NextRequest) {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -105,7 +105,7 @@ export async function POST(request: NextRequest) {
     }
 
     // Only allow system templates for admin users
-    const organizationId = isDefault ? null : parseInt(orgId || '0');
+    const organizationId = isDefault ? null : user.teamId;
 
     const [newTemplate] = await db
       .insert(communicationTemplates)
@@ -117,7 +117,7 @@ export async function POST(request: NextRequest) {
         tags: tags || [],
         isDefault: isDefault || false,
         organizationId,
-        createdBy: parseInt(userId),
+        createdBy: user.id,
       })
       .returning();
 

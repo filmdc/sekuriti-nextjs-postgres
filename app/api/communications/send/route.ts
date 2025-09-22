@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { communicationTemplates, incidents } from '@/lib/db/schema-ir';
 import { eq, and } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs';
+import { getUser } from '@/lib/db/queries';
 
 interface SendCommunicationRequest {
   templateId: number;
@@ -16,8 +16,8 @@ interface SendCommunicationRequest {
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -54,7 +54,7 @@ export async function POST(request: NextRequest) {
         .where(
           and(
             eq(incidents.id, incidentId),
-            eq(incidents.organizationId, parseInt(orgId || '0'))
+            eq(incidents.organizationId, user.teamId)
           )
         )
         .limit(1);
@@ -95,7 +95,7 @@ export async function POST(request: NextRequest) {
       subject,
       content,
       notes,
-      sentBy: parseInt(userId),
+      sentBy: user.id,
       sentAt: new Date(),
       status: result.success ? 'sent' : 'failed',
       error: result.error,

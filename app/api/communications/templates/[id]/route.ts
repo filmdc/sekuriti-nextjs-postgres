@@ -2,15 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { communicationTemplates } from '@/lib/db/schema-ir';
 import { eq, and, or, isNull } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs';
+import { getUser } from '@/lib/db/queries';
 
 export async function GET(
   request: NextRequest,
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -26,7 +26,7 @@ export async function GET(
         and(
           eq(communicationTemplates.id, templateId),
           or(
-            eq(communicationTemplates.organizationId, parseInt(orgId || '0')),
+            eq(communicationTemplates.organizationId, user.teamId),
             isNull(communicationTemplates.organizationId)
           )
         )
@@ -60,8 +60,8 @@ export async function PUT(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -81,7 +81,7 @@ export async function PUT(
         and(
           eq(communicationTemplates.id, templateId),
           or(
-            eq(communicationTemplates.organizationId, parseInt(orgId || '0')),
+            eq(communicationTemplates.organizationId, user.teamId),
             and(
               isNull(communicationTemplates.organizationId),
               // Only admins can edit system templates
@@ -135,8 +135,8 @@ export async function DELETE(
   { params }: { params: { id: string } }
 ) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

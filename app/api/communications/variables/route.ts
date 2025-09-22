@@ -2,12 +2,12 @@ import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
 import { incidents, teams, users } from '@/lib/db/schema';
 import { eq } from 'drizzle-orm';
-import { auth } from '@clerk/nextjs';
+import { getUser } from '@/lib/db/queries';
 
 export async function POST(request: NextRequest) {
   try {
-    const { userId, orgId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
@@ -48,11 +48,11 @@ export async function POST(request: NextRequest) {
     }
 
     // Fetch organization data
-    if (orgId) {
+    if (user.teamId) {
       const [organization] = await db
         .select()
         .from(teams)
-        .where(eq(teams.id, parseInt(orgId)))
+        .where(eq(teams.id, user.teamId))
         .limit(1);
 
       if (organization) {
@@ -65,7 +65,7 @@ export async function POST(request: NextRequest) {
     const [currentUser] = await db
       .select()
       .from(users)
-      .where(eq(users.id, parseInt(userId)))
+      .where(eq(users.id, user.id))
       .limit(1);
 
     if (currentUser) {
@@ -117,8 +117,8 @@ export async function POST(request: NextRequest) {
 
 export async function GET(request: NextRequest) {
   try {
-    const { userId } = auth();
-    if (!userId) {
+    const user = await getUser();
+    if (!user?.teamId) {
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 

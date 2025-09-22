@@ -1,5 +1,5 @@
 import { Suspense } from 'react';
-import { getUser } from '@/lib/db/queries';
+import { getTeamForUser } from '@/lib/db/queries';
 import { getAssets, getAssetStatistics } from '@/lib/db/queries-assets';
 import { getAssetGroups } from '@/lib/db/queries-groups';
 import { getTagsByOrganization } from '@/lib/db/queries-tags';
@@ -27,8 +27,8 @@ async function AssetsDashboard({
 }: {
   searchParams: { [key: string]: string | string[] | undefined };
 }) {
-  const user = await getUser();
-  if (!user?.teamId) {
+  const team = await getTeamForUser();
+  if (!team) {
     return (
       <div className="text-center py-12">
         <p className="text-gray-500">Please log in to view assets</p>
@@ -49,10 +49,10 @@ async function AssetsDashboard({
   };
 
   const [assets, groups, tags, stats] = await Promise.all([
-    getAssets(user.teamId, filters),
-    getAssetGroups(user.teamId),
-    getTagsByOrganization(user.teamId),
-    getAssetStatistics(user.teamId)
+    getAssets(team.id, filters),
+    getAssetGroups(team.id),
+    getTagsByOrganization(team.id),
+    getAssetStatistics(team.id)
   ]);
 
   return (
@@ -66,11 +66,12 @@ async function AssetsDashboard({
   );
 }
 
-export default function AssetsPage({
+export default async function AssetsPage({
   searchParams
 }: {
-  searchParams: { [key: string]: string | string[] | undefined };
+  searchParams: Promise<{ [key: string]: string | string[] | undefined }>;
 }) {
+  const params = await searchParams;
   return (
     <div className="flex-1 space-y-4 p-3 sm:p-4 md:p-8 pt-4 md:pt-6">
       {/* Header */}
@@ -99,7 +100,7 @@ export default function AssetsPage({
 
       {/* Content */}
       <Suspense fallback={<AssetsSkeleton />}>
-        <AssetsDashboard searchParams={searchParams} />
+        <AssetsDashboard searchParams={params} />
       </Suspense>
     </div>
   );
