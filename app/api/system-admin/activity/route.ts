@@ -55,11 +55,11 @@ export const GET = withSystemAdmin(async (
     // Get stats
     const [statsResult] = await db
       .select({
-        totalLogins: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'SIGN_IN' AND ${activityLogs.timestamp} >= ${twentyFourHoursAgo} THEN 1 END)`,
-        failedLogins: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'SIGN_IN_FAILED' AND ${activityLogs.timestamp} >= ${twentyFourHoursAgo} THEN 1 END)`,
-        activeUsers: sql<number>`COUNT(DISTINCT CASE WHEN ${activityLogs.timestamp} >= ${twentyFourHoursAgo} THEN ${activityLogs.userId} END)`,
-        newSignups: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'CREATE_ACCOUNT' AND ${activityLogs.timestamp} >= ${today} THEN 1 END)`,
-        passwordResets: sql<number>`COUNT(CASE WHEN ${activityLogs.action} IN ('UPDATE_PASSWORD', 'RESET_PASSWORD') AND ${activityLogs.timestamp} >= ${sevenDaysAgo} THEN 1 END)`,
+        totalLogins: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'SIGN_IN' AND ${activityLogs.timestamp} >= '${twentyFourHoursAgo.toISOString()}' THEN 1 END)`,
+        failedLogins: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'SIGN_IN_FAILED' AND ${activityLogs.timestamp} >= '${twentyFourHoursAgo.toISOString()}' THEN 1 END)`,
+        activeUsers: sql<number>`COUNT(DISTINCT CASE WHEN ${activityLogs.timestamp} >= '${twentyFourHoursAgo.toISOString()}' THEN ${activityLogs.userId} END)`,
+        newSignups: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'CREATE_ACCOUNT' AND ${activityLogs.timestamp} >= '${today.toISOString()}' THEN 1 END)`,
+        passwordResets: sql<number>`COUNT(CASE WHEN ${activityLogs.action} IN ('UPDATE_PASSWORD', 'RESET_PASSWORD') AND ${activityLogs.timestamp} >= '${sevenDaysAgo.toISOString()}' THEN 1 END)`,
       })
       .from(activityLogs);
 

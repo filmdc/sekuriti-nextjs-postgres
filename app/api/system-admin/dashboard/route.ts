@@ -20,7 +20,7 @@ export const GET = withSystemAdmin(async (
       .select({
         total: sql<number>`COUNT(DISTINCT ${teams.id})`,
         active: sql<number>`COUNT(DISTINCT CASE WHEN ${teams.status} = 'active' THEN ${teams.id} END)`,
-        newThisMonth: sql<number>`COUNT(DISTINCT CASE WHEN ${teams.createdAt} >= ${thirtyDaysAgo} THEN ${teams.id} END)`,
+        newThisMonth: sql<number>`COUNT(DISTINCT CASE WHEN ${teams.createdAt} >= '${thirtyDaysAgo.toISOString()}' THEN ${teams.id} END)`,
       })
       .from(teams);
 
@@ -30,7 +30,7 @@ export const GET = withSystemAdmin(async (
         total: sql<number>`COUNT(DISTINCT ${users.id})`,
         verified: sql<number>`COUNT(DISTINCT CASE WHEN ${users.emailVerified} = true THEN ${users.id} END)`,
         systemAdmins: sql<number>`COUNT(DISTINCT CASE WHEN ${users.isSystemAdmin} = true THEN ${users.id} END)`,
-        newThisWeek: sql<number>`COUNT(DISTINCT CASE WHEN ${users.createdAt} >= ${sevenDaysAgo} THEN ${users.id} END)`,
+        newThisWeek: sql<number>`COUNT(DISTINCT CASE WHEN ${users.createdAt} >= '${sevenDaysAgo.toISOString()}' THEN ${users.id} END)`,
       })
       .from(users);
 
