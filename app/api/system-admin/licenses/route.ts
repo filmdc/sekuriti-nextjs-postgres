@@ -10,7 +10,7 @@ export const GET = withSystemAdmin(async (
   context: { user: any }
 ) => {
   try {
-    // Fetch all organizations with user counts
+    // Fetch all organizations with user counts using subquery
     const organizations = await db
       .select({
         id: teams.id,
@@ -23,11 +23,13 @@ export const GET = withSystemAdmin(async (
         stripeCustomerId: teams.stripeCustomerId,
         stripeSubscriptionId: teams.stripeSubscriptionId,
         stripeSubscriptionStatus: teams.stripeSubscriptionStatus,
-        userCount: sql<number>`COUNT(DISTINCT ${teamMembers.userId})`,
+        userCount: sql<number>`(
+          SELECT COUNT(DISTINCT user_id)
+          FROM team_members
+          WHERE team_id = ${teams.id}
+        )`,
       })
       .from(teams)
-      .leftJoin(teamMembers, eq(teams.id, teamMembers.teamId))
-      .groupBy(teams.id)
       .orderBy(desc(teams.createdAt));
 
     // Calculate statistics
