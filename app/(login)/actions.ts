@@ -99,7 +99,7 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 
   // Check if user is system admin and redirect accordingly
   if (foundUser.isSystemAdmin) {
-    redirect('/system-admin/dashboard');
+    redirect('/admin/dashboard');
   }
 
   redirect('/dashboard');
