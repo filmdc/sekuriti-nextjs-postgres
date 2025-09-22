@@ -39,6 +39,9 @@ export default function CreateOrganizationPage() {
   const { toast } = useToast();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
+  const [currentTab, setCurrentTab] = useState('organization');
+  const [visitedTabs, setVisitedTabs] = useState<Set<string>>(new Set(['organization']));
+  const [errors, setErrors] = useState<Record<string, string>>({});
 
   // Organization details
   const [orgName, setOrgName] = useState('');
@@ -71,15 +74,90 @@ export default function CreateOrganizationPage() {
   const [provisionDropdowns, setProvisionDropdowns] = useState(true);
   const [sendWelcomeEmail, setSendWelcomeEmail] = useState(true);
 
+  const validateForm = () => {
+    const newErrors: Record<string, string> = {};
+
+    // Organization tab validation
+    if (!orgName.trim()) {
+      newErrors.orgName = 'Organization name is required';
+      newErrors.organization = 'Required fields missing';
+    }
+
+    // Owner tab validation
+    if (!ownerEmail.trim()) {
+      newErrors.ownerEmail = 'Owner email is required';
+      newErrors.owner = 'Required fields missing';
+    } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(ownerEmail)) {
+      newErrors.ownerEmail = 'Invalid email format';
+      newErrors.owner = 'Invalid email format';
+    }
+
+    if (!generatePassword && !ownerPassword.trim()) {
+      newErrors.ownerPassword = 'Password is required when not auto-generating';
+      newErrors.owner = 'Password required';
+    } else if (!generatePassword && ownerPassword.length < 8) {
+      newErrors.ownerPassword = 'Password must be at least 8 characters';
+      newErrors.owner = 'Password too short';
+    }
+
+    // License tab validation
+    if (!licenseCount || parseInt(licenseCount) < 1) {
+      newErrors.licenseCount = 'At least 1 license is required';
+      newErrors.license = 'Invalid license count';
+    }
+
+    if (enableTrial && (!trialDays || parseInt(trialDays) < 1)) {
+      newErrors.trialDays = 'Trial days must be at least 1';
+      newErrors.license = 'Invalid trial period';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const handleTabChange = (value: string) => {
+    setCurrentTab(value);
+    setVisitedTabs(prev => new Set(prev).add(value));
+  };
+
+  const getTabStatus = (tab: string) => {
+    if (!visitedTabs.has(tab)) return '';
+
+    switch (tab) {
+      case 'organization':
+        return errors.organization ? 'error' : orgName ? 'complete' : 'incomplete';
+      case 'owner':
+        return errors.owner ? 'error' : ownerEmail ? 'complete' : 'incomplete';
+      case 'license':
+        return errors.license ? 'error' : 'complete';
+      case 'provisioning':
+        return 'complete'; // No required fields
+      default:
+        return '';
+    }
+  };
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    if (!orgName || !ownerEmail) {
-      toast({
-        title: 'Validation Error',
-        description: 'Organization name and owner email are required',
-        variant: 'destructive',
-      });
+    // Mark all tabs as visited to show validation errors
+    setVisitedTabs(new Set(['organization', 'owner', 'license', 'provisioning']));
+
+    if (!validateForm()) {
+      // Find the first tab with errors
+      const tabsWithErrors = [];
+      if (errors.organization || !orgName) tabsWithErrors.push('organization');
+      if (errors.owner || !ownerEmail) tabsWithErrors.push('owner');
+      if (errors.license) tabsWithErrors.push('license');
+
+      if (tabsWithErrors.length > 0) {
+        setCurrentTab(tabsWithErrors[0]);
+        toast({
+          title: 'Validation Error',
+          description: `Please complete all required fields. Check the ${tabsWithErrors.join(', ')} tab(s).`,
+          variant: 'destructive',
+        });
+      }
       return;
     }
 
@@ -187,13 +265,73 @@ export default function CreateOrganizationPage() {
         </div>
       </div>
 
+      {/* Form Status Summary */}
+      {visitedTabs.size > 1 && (
+        <Card className="mb-6">
+          <CardContent className="pt-6">
+            <div className="flex items-start space-x-2">
+              <div className="flex-1">
+                <h3 className="text-sm font-medium mb-2">Form Completion Status</h3>
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-2 text-sm">
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 rounded-full ${getTabStatus('organization') === 'complete' ? 'bg-green-500' : getTabStatus('organization') === 'error' ? 'bg-red-500' : 'bg-gray-300'}`} />
+                    <span>Organization: {getTabStatus('organization') === 'complete' ? '✓' : getTabStatus('organization') === 'error' ? '✗' : '—'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 rounded-full ${getTabStatus('owner') === 'complete' ? 'bg-green-500' : getTabStatus('owner') === 'error' ? 'bg-red-500' : 'bg-gray-300'}`} />
+                    <span>Owner: {getTabStatus('owner') === 'complete' ? '✓' : getTabStatus('owner') === 'error' ? '✗' : '—'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 rounded-full ${getTabStatus('license') === 'complete' ? 'bg-green-500' : getTabStatus('license') === 'error' ? 'bg-red-500' : 'bg-gray-300'}`} />
+                    <span>License: {getTabStatus('license') === 'complete' ? '✓' : getTabStatus('license') === 'error' ? '✗' : '—'}</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <div className={`h-2 w-2 rounded-full ${getTabStatus('provisioning') === 'complete' ? 'bg-green-500' : 'bg-gray-300'}`} />
+                    <span>Provisioning: ✓</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
       <form onSubmit={handleSubmit}>
-        <Tabs defaultValue="organization" className="space-y-6">
+        <Tabs value={currentTab} onValueChange={handleTabChange} className="space-y-6">
           <TabsList className="grid w-full grid-cols-4">
-            <TabsTrigger value="organization">Organization</TabsTrigger>
-            <TabsTrigger value="owner">Owner</TabsTrigger>
-            <TabsTrigger value="license">License</TabsTrigger>
-            <TabsTrigger value="provisioning">Provisioning</TabsTrigger>
+            <TabsTrigger value="organization" className="relative">
+              Organization
+              {getTabStatus('organization') === 'error' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              )}
+              {getTabStatus('organization') === 'complete' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="owner" className="relative">
+              Owner
+              {getTabStatus('owner') === 'error' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              )}
+              {getTabStatus('owner') === 'complete' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="license" className="relative">
+              License
+              {getTabStatus('license') === 'error' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-red-500 rounded-full" />
+              )}
+              {getTabStatus('license') === 'complete' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+              )}
+            </TabsTrigger>
+            <TabsTrigger value="provisioning" className="relative">
+              Provisioning
+              {getTabStatus('provisioning') === 'complete' && (
+                <span className="absolute -top-1 -right-1 h-2 w-2 bg-green-500 rounded-full" />
+              )}
+            </TabsTrigger>
           </TabsList>
 
           {/* Organization Details */}
@@ -206,14 +344,39 @@ export default function CreateOrganizationPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Progress Indicator */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-900/20 p-4 mb-4">
+                  <div className="flex">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="font-medium mb-1">Required Information</p>
+                      <p>Fields marked with * are required. You must complete all required fields before creating the organization.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="orgName">Organization Name *</Label>
+                    <Label htmlFor="orgName" className="flex items-center">
+                      Organization Name *
+                      {errors.orgName && (
+                        <span className="ml-2 text-xs text-red-500">({errors.orgName})</span>
+                      )}
+                    </Label>
                     <Input
                       id="orgName"
                       value={orgName}
-                      onChange={(e) => setOrgName(e.target.value)}
+                      onChange={(e) => {
+                        setOrgName(e.target.value);
+                        if (errors.orgName) {
+                          const newErrors = { ...errors };
+                          delete newErrors.orgName;
+                          delete newErrors.organization;
+                          setErrors(newErrors);
+                        }
+                      }}
                       placeholder="Acme Corporation"
+                      className={errors.orgName ? 'border-red-500' : ''}
                       required
                     />
                   </div>
@@ -293,15 +456,40 @@ export default function CreateOrganizationPage() {
                 </CardDescription>
               </CardHeader>
               <CardContent className="space-y-4">
+                {/* Progress Indicator */}
+                <div className="rounded-lg border border-blue-200 bg-blue-50 dark:border-blue-900 dark:bg-blue-900/20 p-4 mb-4">
+                  <div className="flex">
+                    <AlertCircle className="h-4 w-4 text-blue-600 mt-0.5 mr-2 flex-shrink-0" />
+                    <div className="text-sm text-blue-800 dark:text-blue-200">
+                      <p className="font-medium mb-1">Organization Owner Setup</p>
+                      <p>The owner email is required. A temporary password will be generated if not specified.</p>
+                    </div>
+                  </div>
+                </div>
+
                 <div className="grid gap-4 md:grid-cols-2">
                   <div className="space-y-2">
-                    <Label htmlFor="ownerEmail">Owner Email *</Label>
+                    <Label htmlFor="ownerEmail" className="flex items-center">
+                      Owner Email *
+                      {errors.ownerEmail && (
+                        <span className="ml-2 text-xs text-red-500">({errors.ownerEmail})</span>
+                      )}
+                    </Label>
                     <Input
                       id="ownerEmail"
                       type="email"
                       value={ownerEmail}
-                      onChange={(e) => setOwnerEmail(e.target.value)}
+                      onChange={(e) => {
+                        setOwnerEmail(e.target.value);
+                        if (errors.ownerEmail) {
+                          const newErrors = { ...errors };
+                          delete newErrors.ownerEmail;
+                          delete newErrors.owner;
+                          setErrors(newErrors);
+                        }
+                      }}
                       placeholder="admin@example.com"
+                      className={errors.ownerEmail ? 'border-red-500' : ''}
                       required
                     />
                   </div>
@@ -333,13 +521,27 @@ export default function CreateOrganizationPage() {
                   </div>
                   {!generatePassword && (
                     <div className="space-y-2">
-                      <Label htmlFor="ownerPassword">Initial Password</Label>
+                      <Label htmlFor="ownerPassword" className="flex items-center">
+                        Initial Password *
+                        {errors.ownerPassword && (
+                          <span className="ml-2 text-xs text-red-500">({errors.ownerPassword})</span>
+                        )}
+                      </Label>
                       <Input
                         id="ownerPassword"
                         type="password"
                         value={ownerPassword}
-                        onChange={(e) => setOwnerPassword(e.target.value)}
-                        placeholder="Enter a secure password"
+                        onChange={(e) => {
+                          setOwnerPassword(e.target.value);
+                          if (errors.ownerPassword) {
+                            const newErrors = { ...errors };
+                            delete newErrors.ownerPassword;
+                            delete newErrors.owner;
+                            setErrors(newErrors);
+                          }
+                        }}
+                        placeholder="Enter a secure password (min 8 characters)"
+                        className={errors.ownerPassword ? 'border-red-500' : ''}
                       />
                       <p className="text-xs text-muted-foreground">
                         User will be required to change password on first login
