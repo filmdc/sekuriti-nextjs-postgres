@@ -1,7 +1,6 @@
 import { redirect } from 'next/navigation';
 import { getUser } from '@/lib/db/queries';
 import Link from 'next/link';
-import { Button } from '@/components/ui/button';
 import {
   Shield,
   Building2,
@@ -30,78 +29,99 @@ export default async function AdminLayout({
   }
 
   return (
-    <div className="min-h-screen bg-gray-50">
-      {/* Admin Header */}
-      <header className="border-b bg-white">
-        <div className="container mx-auto px-4 sm:px-6 lg:px-8">
-          <div className="flex h-16 items-center justify-between">
+    <div className="min-h-screen bg-gray-100">
+      <div className="flex">
+        {/* Admin Sidebar - Dark Theme */}
+        <aside className="w-64 bg-gray-900 min-h-screen">
+          {/* Logo Section */}
+          <div className="p-6 border-b border-gray-800">
             <div className="flex items-center">
-              <Shield className="h-8 w-8 text-red-600" />
-              <span className="ml-2 text-xl font-bold">System Admin</span>
-            </div>
-            <div className="flex items-center space-x-4">
-              <Link href="/">
-                <Button variant="ghost" size="sm">
-                  <Home className="h-4 w-4 mr-2" />
-                  Public Site
-                </Button>
-              </Link>
-              <form action="/api/auth/signout" method="POST">
-                <Button variant="ghost" size="sm" type="submit">
-                  <LogOut className="h-4 w-4 mr-2" />
-                  Sign Out
-                </Button>
-              </form>
+              <Shield className="h-8 w-8 text-red-500" />
+              <div className="ml-3">
+                <h1 className="text-white font-bold text-lg">Sekuriti.io</h1>
+                <p className="text-gray-400 text-xs">System Admin</p>
+              </div>
             </div>
           </div>
-        </div>
-      </header>
 
-      <div className="flex">
-        {/* Sidebar Navigation */}
-        <nav className="w-64 border-r bg-white min-h-[calc(100vh-4rem)]">
-          <div className="p-4 space-y-2">
+          {/* Navigation */}
+          <nav className="p-4 space-y-1">
             <Link href="/admin/dashboard">
-              <Button variant="ghost" className="w-full justify-start">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Dashboard
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <BarChart3 className="h-5 w-5" />
+                <span className="ml-3">Dashboard</span>
+              </div>
             </Link>
             <Link href="/admin/organizations">
-              <Button variant="ghost" className="w-full justify-start">
-                <Building2 className="h-4 w-4 mr-2" />
-                Organizations
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <Building2 className="h-5 w-5" />
+                <span className="ml-3">Organizations</span>
+              </div>
             </Link>
             <Link href="/admin/users">
-              <Button variant="ghost" className="w-full justify-start">
-                <Users className="h-4 w-4 mr-2" />
-                Users
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <Users className="h-5 w-5" />
+                <span className="ml-3">Users</span>
+              </div>
             </Link>
             <Link href="/admin/billing">
-              <Button variant="ghost" className="w-full justify-start">
-                <CreditCard className="h-4 w-4 mr-2" />
-                Billing
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <CreditCard className="h-5 w-5" />
+                <span className="ml-3">Billing</span>
+              </div>
             </Link>
             <Link href="/admin/activity">
-              <Button variant="ghost" className="w-full justify-start">
-                <Activity className="h-4 w-4 mr-2" />
-                Activity Logs
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <Activity className="h-5 w-5" />
+                <span className="ml-3">Activity Logs</span>
+              </div>
             </Link>
             <Link href="/admin/settings">
-              <Button variant="ghost" className="w-full justify-start">
-                <Settings className="h-4 w-4 mr-2" />
-                Settings
-              </Button>
+              <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <Settings className="h-5 w-5" />
+                <span className="ml-3">Settings</span>
+              </div>
             </Link>
-          </div>
-        </nav>
+          </nav>
 
-        {/* Main Content */}
-        <main className="flex-1 p-8">{children}</main>
+          {/* Bottom Section */}
+          <div className="absolute bottom-0 w-64 p-4 border-t border-gray-800">
+            <div className="mb-4 px-4 py-2">
+              <p className="text-gray-400 text-sm">System Administrator</p>
+              <p className="text-white text-sm font-medium truncate">{user.email}</p>
+            </div>
+            <Link href="/">
+              <div className="flex items-center px-4 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                <Home className="h-4 w-4" />
+                <span className="ml-3 text-sm">Back to Dashboard</span>
+              </div>
+            </Link>
+            <form action="/api/auth/signout" method="POST">
+              <button type="submit" className="w-full flex items-center px-4 py-2 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors">
+                <LogOut className="h-4 w-4" />
+                <span className="ml-3 text-sm">Sign Out</span>
+              </button>
+            </form>
+          </div>
+        </aside>
+
+        {/* Main Content Area */}
+        <div className="flex-1">
+          {/* Top Header */}
+          <header className="bg-white shadow-sm border-b">
+            <div className="px-8 py-4">
+              <div className="flex items-center justify-between">
+                <h2 className="text-2xl font-semibold text-gray-900">System Administration Portal</h2>
+                <div className="text-sm text-gray-500">
+                  Manage organizations, users, and system settings
+                </div>
+              </div>
+            </div>
+          </header>
+
+          {/* Main Content */}
+          <main className="p-8">{children}</main>
+        </div>
       </div>
     </div>
   );
