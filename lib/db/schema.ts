@@ -20,6 +20,7 @@ export const users = pgTable('users', {
   title: varchar('title', { length: 100 }),
   department: varchar('department', { length: 100 }),
   isOrganizationAdmin: boolean('is_organization_admin').default(false),
+  isSystemAdmin: boolean('is_system_admin').default(false), // System admin flag
   profileImageUrl: text('profile_image_url'),
   lastLoginAt: timestamp('last_login_at'),
   createdAt: timestamp('created_at').notNull().defaultNow(),
@@ -44,6 +45,16 @@ export const teams = pgTable('teams', {
   address: text('address'),
   phone: varchar('phone', { length: 50 }),
   website: varchar('website', { length: 255 }),
+  // System admin fields for organization management
+  status: varchar('status', { length: 20 }).notNull().default('active'), // active, suspended, trial, expired
+  licenseCount: integer('license_count').notNull().default(5), // Number of allowed users
+  licenseType: varchar('license_type', { length: 50 }).default('standard'), // standard, professional, enterprise
+  expiresAt: timestamp('expires_at'), // License expiration date
+  trialEndsAt: timestamp('trial_ends_at'), // Trial period end date
+  customDomain: varchar('custom_domain', { length: 255 }), // Custom domain for white-labeling
+  allowedEmailDomains: text('allowed_email_domains'), // JSON array of allowed email domains
+  features: text('features'), // JSON object for feature flags
+  metadata: text('metadata'), // JSON object for additional settings
 });
 
 // Alias for semantic clarity in IR context
@@ -169,4 +180,13 @@ export enum ActivityType {
   START_EXERCISE = 'START_EXERCISE',
   COMPLETE_EXERCISE = 'COMPLETE_EXERCISE',
   UPLOAD_EVIDENCE = 'UPLOAD_EVIDENCE',
+  // System Admin activities
+  CREATE_ORGANIZATION = 'CREATE_ORGANIZATION',
+  UPDATE_ORGANIZATION = 'UPDATE_ORGANIZATION',
+  SUSPEND_ORGANIZATION = 'SUSPEND_ORGANIZATION',
+  DELETE_ORGANIZATION = 'DELETE_ORGANIZATION',
+  UPDATE_LICENSES = 'UPDATE_LICENSES',
+  IMPERSONATE_USER = 'IMPERSONATE_USER',
+  UPDATE_SYSTEM_SETTINGS = 'UPDATE_SYSTEM_SETTINGS',
+  PROVISION_ORGANIZATION = 'PROVISION_ORGANIZATION',
 }
