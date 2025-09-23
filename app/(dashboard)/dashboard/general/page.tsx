@@ -9,7 +9,6 @@ import { Loader2 } from 'lucide-react';
 import { updateAccount } from '@/app/(login)/actions';
 import { User } from '@/lib/db/schema';
 import useSWR from 'swr';
-import { Suspense } from 'react';
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
@@ -61,22 +60,13 @@ function AccountForm({
   );
 }
 
-function AccountFormWithData({ state }: { state: ActionState }) {
-  const { data: user } = useSWR<User>('/api/user', fetcher);
-  return (
-    <AccountForm
-      state={state}
-      nameValue={user?.name ?? ''}
-      emailValue={user?.email ?? ''}
-    />
-  );
-}
 
 export default function GeneralPage() {
   const [state, formAction, isPending] = useActionState<ActionState, FormData>(
     updateAccount,
     {}
   );
+  const { data: user, isLoading } = useSWR<User>('/api/user', fetcher);
 
   return (
     <section className="flex-1 p-4 lg:p-8">
@@ -90,9 +80,11 @@ export default function GeneralPage() {
         </CardHeader>
         <CardContent>
           <form className="space-y-4" action={formAction}>
-            <Suspense fallback={<AccountForm state={state} />}>
-              <AccountFormWithData state={state} />
-            </Suspense>
+            <AccountForm
+              state={state}
+              nameValue={!isLoading && user ? user.name ?? '' : ''}
+              emailValue={!isLoading && user ? user.email ?? '' : ''}
+            />
             {state.error && (
               <p className="text-red-500 text-sm">{state.error}</p>
             )}
