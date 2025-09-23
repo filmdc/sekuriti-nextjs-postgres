@@ -16,92 +16,142 @@ export const GET = withSystemAdmin(async (
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfToday = new Date(now.getFullYear(), now.getMonth(), now.getDate());
 
-    // Get organization count
-    const [orgStats] = await db
+    // Get organization count - simple count
+    const [orgCount] = await db
       .select({
-        total: sql<number>`COUNT(*)`,
-        active: sql<number>`COUNT(CASE WHEN ${teams.status} = 'active' THEN 1 END)`,
-        trial: sql<number>`COUNT(CASE WHEN ${teams.status} = 'trial' THEN 1 END)`,
-        newThisMonth: sql<number>`COUNT(CASE WHEN ${teams.createdAt} >= '${startOfMonth.toISOString()}' THEN 1 END)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
       })
       .from(teams);
 
-    // Get user count
-    const [userStats] = await db
+    // Get active organizations
+    const [activeOrgs] = await db
       .select({
-        total: sql<number>`COUNT(*)`,
-        verified: sql<number>`COUNT(CASE WHEN ${users.lastLoginAt} IS NOT NULL THEN 1 END)`,
-        systemAdmins: sql<number>`COUNT(CASE WHEN ${users.isSystemAdmin} = true THEN 1 END)`,
-        newThisMonth: sql<number>`COUNT(CASE WHEN ${users.createdAt} >= '${startOfMonth.toISOString()}' THEN 1 END)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(teams)
+      .where(eq(teams.status, 'active'));
+
+    // Get trial organizations
+    const [trialOrgs] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(teams)
+      .where(eq(teams.status, 'trial'));
+
+    // Get new organizations this month
+    const [newOrgsMonth] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(teams)
+      .where(gte(teams.createdAt, startOfMonth));
+
+    // Get user count
+    const [userCount] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(users);
+
+    // Get verified users (have logged in)
+    const [verifiedUsers] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
       })
       .from(users)
-      .where(sql`${users.deletedAt} IS NULL`);
+      .where(sql`last_login_at IS NOT NULL`);
 
-    // Get subscription stats
-    const [subscriptionStats] = await db
+    // Get system admins
+    const [systemAdmins] = await db
       .select({
-        active: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' THEN 1 END)`,
-        trial: sql<number>`COUNT(CASE WHEN ${teams.status} = 'trial' THEN 1 END)`,
-        mrr: sql<number>`SUM(CASE 
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'enterprise' THEN 299
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'professional' THEN 99
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'standard' THEN 29
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(users)
+      .where(eq(users.isSystemAdmin, true));
+
+    // Get new users this month
+    const [newUsersMonth] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(users)
+      .where(gte(users.createdAt, startOfMonth));
+
+    // Get active subscriptions
+    const [activeSubscriptions] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
+      })
+      .from(teams)
+      .where(eq(teams.subscriptionStatus, 'active'));
+
+    // Calculate MRR
+    const [mrrData] = await db
+      .select({
+        mrr: sql<number>`CAST(SUM(CASE
+          WHEN subscription_status = 'active' AND plan_name = 'enterprise' THEN 299
+          WHEN subscription_status = 'active' AND plan_name = 'professional' THEN 99
+          WHEN subscription_status = 'active' AND plan_name = 'standard' THEN 29
           ELSE 0
-        END)`,
+        END) AS INTEGER)`,
       })
       .from(teams);
 
     // Get incident count
-    const [incidentStats] = await db
+    const [incidentCount] = await db
       .select({
-        total: sql<number>`COUNT(*)`,
-        active: sql<number>`COUNT(CASE WHEN ${incidents.status} != 'closed' THEN 1 END)`,
-        thisMonth: sql<number>`COUNT(CASE WHEN ${incidents.detectedAt} >= '${startOfMonth.toISOString()}' THEN 1 END)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
       })
       .from(incidents);
 
-    // Get activity stats
-    const [activityStats] = await db
+    // Get active incidents
+    const [activeIncidents] = await db
       .select({
-        todayLogins: sql<number>`COUNT(CASE WHEN ${activityLogs.action} = 'SIGN_IN' AND ${activityLogs.timestamp} >= '${startOfToday.toISOString()}' THEN 1 END)`,
-        weeklyActiveUsers: sql<number>`COUNT(DISTINCT CASE WHEN ${activityLogs.timestamp} >= '${startOfWeek.toISOString()}' THEN ${activityLogs.userId} END)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
       })
-      .from(activityLogs);
+      .from(incidents)
+      .where(sql`status != 'closed'`);
 
-    // Calculate revenue growth (simplified)
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const [lastMonthRevenue] = await db
+    // Get today's login count
+    const [todayLogins] = await db
       .select({
-        mrr: sql<number>`SUM(CASE 
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'enterprise' THEN 299
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'professional' THEN 99
-          WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'standard' THEN 29
-          ELSE 0
-        END)`,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`
       })
-      .from(teams)
-      .where(gte(teams.createdAt, lastMonth));
+      .from(activityLogs)
+      .where(and(
+        eq(activityLogs.action, 'SIGN_IN' as any),
+        gte(activityLogs.timestamp, startOfToday)
+      ));
 
-    const currentMrr = subscriptionStats?.mrr || 0;
-    const previousMrr = lastMonthRevenue?.mrr || 0;
-    const revenueGrowth = previousMrr > 0 ? ((currentMrr - previousMrr) / previousMrr) * 100 : 0;
+    // Get weekly active users
+    const [weeklyActive] = await db
+      .select({
+        count: sql<number>`CAST(COUNT(DISTINCT user_id) AS INTEGER)`
+      })
+      .from(activityLogs)
+      .where(gte(activityLogs.timestamp, startOfWeek));
 
-    return NextResponse.json({
-      organizations: orgStats?.total || 0,
-      users: userStats?.total || 0,
-      activeSubscriptions: subscriptionStats?.active || 0,
-      incidents: incidentStats?.total || 0,
+    // Prepare response
+    const responseData = {
+      organizations: orgCount?.count || 0,
+      users: userCount?.count || 0,
+      activeSubscriptions: activeSubscriptions?.count || 0,
+      incidents: incidentCount?.count || 0,
       revenue: {
-        mrr: currentMrr,
-        total: currentMrr * 12, // Annual recurring revenue
-        growth: Math.round(revenueGrowth * 100) / 100,
+        mrr: mrrData?.mrr || 0,
+        total: (mrrData?.mrr || 0) * 12, // Annual recurring revenue
+        growth: 0, // Simplified for now
       },
       activity: {
-        todayLogins: activityStats?.todayLogins || 0,
-        weeklyActiveUsers: activityStats?.weeklyActiveUsers || 0,
-        newUsersThisMonth: userStats?.newThisMonth || 0,
+        todayLogins: todayLogins?.count || 0,
+        weeklyActiveUsers: weeklyActive?.count || 0,
+        newUsersThisMonth: newUsersMonth?.count || 0,
       },
-    });
+    };
+
+    console.log('Returning stats response:', responseData);
+    return NextResponse.json(responseData);
   } catch (error) {
     console.error('Error fetching system stats:', error);
     return NextResponse.json(
