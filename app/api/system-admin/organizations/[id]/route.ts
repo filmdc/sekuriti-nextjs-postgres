@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { withSystemAdmin, logSystemAction } from '@/lib/auth/system-admin';
 import { db } from '@/lib/db/drizzle';
-import { teams, teamMembers, users, ActivityType, incidents, assets } from '@/lib/db/schema';
+import { teams, teamMembers, users, ActivityType } from '@/lib/db/schema';
+import { incidents, assets } from '@/lib/db/schema-ir';
 import { organizationLimits } from '@/lib/db/schema-system';
 import { eq, sql } from 'drizzle-orm';
 

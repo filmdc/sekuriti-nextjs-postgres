@@ -17,7 +17,110 @@ import {
   Clock,
 } from 'lucide-react';
 
-export default async function SystemSettingsPage() {
+'use client';
+
+import { useEffect, useState } from 'react';
+import { toast } from '@/components/ui/use-toast';
+
+interface SystemSettings {
+  [key: string]: {
+    value: any;
+    description?: string;
+    category: string;
+    dataType: string;
+    isPublic: boolean;
+  };
+}
+
+interface RecentChange {
+  id: number;
+  action: string;
+  description: string;
+  timestamp: string;
+}
+
+export default function SystemSettingsPage() {
+  const [settings, setSettings] = useState<SystemSettings>({});
+  const [recentChanges, setRecentChanges] = useState<RecentChange[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [saving, setSaving] = useState(false);
+
+  useEffect(() => {
+    fetchSettings();
+  }, []);
+
+  const fetchSettings = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/system-admin/settings');
+      if (!response.ok) throw new Error('Failed to fetch settings');
+      const data = await response.json();
+      setSettings(data.settings || {});
+      setRecentChanges(data.recentChanges || []);
+    } catch (error) {
+      console.error('Error fetching settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load system settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveSettings = async (updatedSettings: Record<string, any>) => {
+    try {
+      setSaving(true);
+      const response = await fetch('/api/system-admin/settings', {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ settings: updatedSettings }),
+      });
+
+      if (!response.ok) throw new Error('Failed to save settings');
+
+      toast({
+        title: 'Success',
+        description: 'Settings saved successfully',
+      });
+
+      // Refresh settings
+      fetchSettings();
+    } catch (error) {
+      console.error('Error saving settings:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to save settings',
+        variant: 'destructive',
+      });
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const handleSaveGeneral = () => {
+    const generalSettings = {
+      'app.name': (document.getElementById('app-name') as HTMLInputElement)?.value || 'Sekuriti.io',
+      'app.url': (document.getElementById('app-url') as HTMLInputElement)?.value || 'https://sekuriti.io',
+      'app.support_email': (document.getElementById('support-email') as HTMLInputElement)?.value || 'support@sekuriti.io',
+      'app.maintenance_mode': (document.getElementById('maintenance-mode') as HTMLInputElement)?.checked || false,
+      'app.registration_enabled': (document.getElementById('registration') as HTMLInputElement)?.checked || true,
+    };
+    saveSettings(generalSettings);
+  };
+
+  const getSettingValue = (key: string, defaultValue: any = '') => {
+    return settings[key]?.value ?? defaultValue;
+  };
+
+  if (loading) {
+    return (
+      <div className="flex items-center justify-center h-64">
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+      </div>
+    );
+  }
   return (
     <div>
       {/* Page Header */}
@@ -50,7 +153,7 @@ export default async function SystemSettingsPage() {
                 <Label htmlFor="app-name">Application Name</Label>
                 <Input
                   id="app-name"
-                  defaultValue="Sekuriti.io"
+                  defaultValue={getSettingValue('app.name', 'Sekuriti.io')}
                   className="mt-1"
                 />
               </div>
@@ -58,7 +161,7 @@ export default async function SystemSettingsPage() {
                 <Label htmlFor="app-url">Application URL</Label>
                 <Input
                   id="app-url"
-                  defaultValue="https://sekuriti.io"
+                  defaultValue={getSettingValue('app.url', 'https://sekuriti.io')}
                   className="mt-1"
                 />
               </div>
@@ -67,7 +170,7 @@ export default async function SystemSettingsPage() {
                 <Input
                   id="support-email"
                   type="email"
-                  defaultValue="support@sekuriti.io"
+                  defaultValue={getSettingValue('app.support_email', 'support@sekuriti.io')}
                   className="mt-1"
                 />
               </div>
@@ -78,7 +181,7 @@ export default async function SystemSettingsPage() {
                     Enable to prevent user access during maintenance
                   </p>
                 </div>
-                <Switch id="maintenance-mode" />
+                <Switch id="maintenance-mode" defaultChecked={getSettingValue('app.maintenance_mode', false)} />
               </div>
               <div className="flex items-center justify-between">
                 <div>
@@ -87,11 +190,13 @@ export default async function SystemSettingsPage() {
                     Allow new users to sign up
                   </p>
                 </div>
-                <Switch id="registration" defaultChecked />
+                <Switch id="registration" defaultChecked={getSettingValue('app.registration_enabled', true)} />
               </div>
             </div>
             <div className="mt-6 flex justify-end">
-              <Button>Save Changes</Button>
+              <Button onClick={handleSaveGeneral} disabled={saving}>
+                {saving ? 'Saving...' : 'Save Changes'}
+              </Button>
             </div>
           </Card>
         </TabsContent>
@@ -308,27 +413,23 @@ export default async function SystemSettingsPage() {
           Recent Configuration Changes
         </h2>
         <div className="space-y-3">
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <div>
-              <p className="font-medium text-sm">Email settings updated</p>
-              <p className="text-sm text-gray-600">Changed SMTP host configuration</p>
+          {recentChanges.length > 0 ? (
+            recentChanges.map((change) => (
+              <div key={change.id} className="flex items-center justify-between p-3 bg-gray-50 rounded">
+                <div>
+                  <p className="font-medium text-sm">{change.description}</p>
+                  <p className="text-sm text-gray-600">{change.action}</p>
+                </div>
+                <p className="text-sm text-gray-500">
+                  {new Date(change.timestamp).toLocaleDateString()}
+                </p>
+              </div>
+            ))
+          ) : (
+            <div className="text-center py-4 text-gray-500">
+              <p>No recent configuration changes</p>
             </div>
-            <p className="text-sm text-gray-500">2 hours ago</p>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <div>
-              <p className="font-medium text-sm">Database backup enabled</p>
-              <p className="text-sm text-gray-600">Automatic daily backups activated</p>
-            </div>
-            <p className="text-sm text-gray-500">1 day ago</p>
-          </div>
-          <div className="flex items-center justify-between p-3 bg-gray-50 rounded">
-            <div>
-              <p className="font-medium text-sm">Session timeout increased</p>
-              <p className="text-sm text-gray-600">Changed from 30 to 60 minutes</p>
-            </div>
-            <p className="text-sm text-gray-500">3 days ago</p>
-          </div>
+          )}
         </div>
       </Card>
     </div>

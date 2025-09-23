@@ -63,72 +63,35 @@ export default function BillingPage() {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Mock data for demonstration
-    const mockData: BillingOverview = {
-      totalRevenue: 125420,
-      activeSubscriptions: 187,
-      churnRate: 3.2,
-      growthRate: 12.5,
-      revenueByPlan: [
-        { plan: 'Enterprise', revenue: 75000, count: 25 },
-        { plan: 'Professional', revenue: 40000, count: 80 },
-        { plan: 'Starter', revenue: 10420, count: 82 },
-      ],
-      revenueHistory: [
-        { month: 'Jan', revenue: 18500, subscriptions: 145 },
-        { month: 'Feb', revenue: 19200, subscriptions: 152 },
-        { month: 'Mar', revenue: 20100, subscriptions: 158 },
-        { month: 'Apr', revenue: 21300, subscriptions: 165 },
-        { month: 'May', revenue: 22800, subscriptions: 174 },
-        { month: 'Jun', revenue: 24520, subscriptions: 187 },
-      ],
-      subscriptionStatus: [
-        { status: 'Active', count: 187, color: '#10b981' },
-        { status: 'Trialing', count: 23, color: '#3b82f6' },
-        { status: 'Past Due', count: 8, color: '#f59e0b' },
-        { status: 'Canceled', count: 12, color: '#ef4444' },
-      ],
-      recentTransactions: [
-        {
-          id: 'inv_2024_001',
-          organization: 'TechCorp Solutions',
-          amount: 3000,
-          status: 'paid',
-          date: '2024-06-15',
-          plan: 'Enterprise',
-        },
-        {
-          id: 'inv_2024_002',
-          organization: 'DataSec Industries',
-          amount: 500,
-          status: 'paid',
-          date: '2024-06-14',
-          plan: 'Professional',
-        },
-        {
-          id: 'inv_2024_003',
-          organization: 'CloudGuard Inc',
-          amount: 127,
-          status: 'pending',
-          date: '2024-06-13',
-          plan: 'Starter',
-        },
-        {
-          id: 'inv_2024_004',
-          organization: 'SecureNet Corp',
-          amount: 500,
-          status: 'failed',
-          date: '2024-06-12',
-          plan: 'Professional',
-        },
-      ],
-    };
-
-    setTimeout(() => {
-      setOverview(mockData);
-      setLoading(false);
-    }, 1000);
+    fetchBillingData();
   }, []);
+
+  const fetchBillingData = async () => {
+    try {
+      setLoading(true);
+      const response = await fetch('/api/system-admin/billing');
+      if (!response.ok) {
+        throw new Error('Failed to fetch billing data');
+      }
+      const data = await response.json();
+      setOverview(data);
+    } catch (error) {
+      console.error('Error fetching billing data:', error);
+      // Set fallback data if API fails
+      setOverview({
+        totalRevenue: 0,
+        activeSubscriptions: 0,
+        churnRate: 0,
+        growthRate: 0,
+        revenueByPlan: [],
+        revenueHistory: [],
+        subscriptionStatus: [],
+        recentTransactions: [],
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const formatCurrency = (amount: number) => {
     return new Intl.NumberFormat('en-US', {
