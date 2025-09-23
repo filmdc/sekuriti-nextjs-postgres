@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Tag, Search, Filter, Hash } from "lucide-react";
+import { Plus, Edit2, Trash2, Tag, Search, Filter, Hash, RefreshCw } from "lucide-react";
+import { useAdminAPI, adminAPI } from '@/lib/hooks/use-admin-api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -82,7 +83,6 @@ const colorOptions = [
 ];
 
 export default function DefaultTagsPage() {
-  const [tags, setTags] = useState<DefaultTag[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -99,77 +99,13 @@ export default function DefaultTagsPage() {
   });
   const { toast } = useToast();
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    const mockTags: DefaultTag[] = [
-      {
-        id: "1",
-        name: "PCI-DSS",
-        category: "Compliance",
-        color: "purple",
-        description: "Payment Card Industry Data Security Standard compliance",
-        isActive: true,
-        isMandatory: true,
-        appliesTo: ["Asset", "Incident"],
-        usageCount: 234,
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-15",
-      },
-      {
-        id: "2",
-        name: "Critical",
-        category: "Security",
-        color: "red",
-        description: "Critical security level indicator",
-        isActive: true,
-        isMandatory: false,
-        appliesTo: ["Incident", "Asset", "Runbook"],
-        usageCount: 189,
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-10",
-      },
-      {
-        id: "3",
-        name: "GDPR",
-        category: "Compliance",
-        color: "blue",
-        description: "General Data Protection Regulation compliance",
-        isActive: true,
-        isMandatory: true,
-        appliesTo: ["Asset", "Incident", "Communication"],
-        usageCount: 167,
-        createdAt: "2024-01-01",
-        updatedAt: "2024-01-20",
-      },
-      {
-        id: "4",
-        name: "Production",
-        category: "Operational",
-        color: "green",
-        description: "Production environment resources",
-        isActive: true,
-        isMandatory: false,
-        appliesTo: ["Asset"],
-        usageCount: 456,
-        createdAt: "2024-01-05",
-        updatedAt: "2024-01-18",
-      },
-      {
-        id: "5",
-        name: "High-Risk",
-        category: "Security",
-        color: "orange",
-        description: "High risk security classification",
-        isActive: true,
-        isMandatory: false,
-        appliesTo: ["Asset", "Incident"],
-        usageCount: 89,
-        createdAt: "2024-01-08",
-        updatedAt: "2024-01-22",
-      },
-    ];
-    setTags(mockTags);
-  }, []);
+  // Fetch tags from API
+  const { data, isLoading, mutate: refreshTags } = useAdminAPI<{ tags: DefaultTag[] }>(
+    '/api/system-admin/tags/defaults'
+  );
+
+  const tags = data?.tags || [];
+
 
   const filteredTags = tags.filter((tag) => {
     const matchesSearch =
@@ -179,58 +115,59 @@ export default function DefaultTagsPage() {
     return matchesSearch && matchesCategory;
   });
 
-  const handleCreate = () => {
-    const newTag: DefaultTag = {
-      id: Date.now().toString(),
-      ...formData,
-      usageCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-    setTags([...tags, newTag]);
-    setIsCreateDialogOpen(false);
-    setFormData({
-      name: "",
-      category: "",
-      color: "blue",
-      description: "",
-      isActive: true,
-      isMandatory: false,
-      appliesTo: [],
-    });
-    toast({
-      title: "Tag created",
-      description: "Default tag has been created successfully.",
-    });
+  const handleCreate = async () => {
+    try {
+      await adminAPI('/api/system-admin/tags/defaults', {
+        method: 'POST',
+        body: formData,
+        successMessage: 'Default tag created successfully',
+      });
+
+      refreshTags();
+      setIsCreateDialogOpen(false);
+      setFormData({
+        name: "",
+        category: "",
+        color: "blue",
+        description: "",
+        isActive: true,
+        isMandatory: false,
+        appliesTo: [],
+      });
+    } catch (error) {
+      console.error('Error creating tag:', error);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!selectedTag) return;
 
-    const updatedTags = tags.map((t) =>
-      t.id === selectedTag.id
-        ? {
-            ...t,
-            ...formData,
-            updatedAt: new Date().toISOString().split("T")[0],
-          }
-        : t
-    );
-    setTags(updatedTags);
-    setIsEditDialogOpen(false);
-    setSelectedTag(null);
-    toast({
-      title: "Tag updated",
-      description: "Default tag has been updated successfully.",
-    });
+    try {
+      await adminAPI(`/api/system-admin/tags/defaults/${selectedTag.id}`, {
+        method: 'PUT',
+        body: formData,
+        successMessage: 'Default tag updated successfully',
+      });
+
+      refreshTags();
+      setIsEditDialogOpen(false);
+      setSelectedTag(null);
+    } catch (error) {
+      console.error('Error updating tag:', error);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTags(tags.filter((t) => t.id !== id));
-    toast({
-      title: "Tag deleted",
-      description: "Default tag has been deleted.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await adminAPI(`/api/system-admin/tags/defaults/${id}`, {
+        method: 'DELETE',
+        successMessage: 'Default tag deleted successfully',
+      });
+
+      refreshTags();
+    } catch (error) {
+      console.error('Error deleting tag:', error);
+    }
   };
 
   const openEditDialog = (tag: DefaultTag) => {
@@ -271,10 +208,20 @@ export default function DefaultTagsPage() {
             Define system-wide tags that organizations can use for categorization
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Tag
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refreshTags()}
+            variant="outline"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Tag
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -368,7 +315,20 @@ export default function DefaultTagsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTags.map((tag) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8">
+                    Loading tags...
+                  </TableCell>
+                </TableRow>
+              ) : filteredTags.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    No tags found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTags.map((tag) => (
                 <TableRow key={tag.id}>
                   <TableCell>
                     <div className="flex items-center gap-2">
@@ -426,7 +386,8 @@ export default function DefaultTagsPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>

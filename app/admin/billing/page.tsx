@@ -1,7 +1,9 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
+import { useAdminAPI, adminAPI } from '@/lib/hooks/use-admin-api';
 import Link from 'next/link';
+import { Button } from '@/components/ui/button';
 import {
   Card,
   CardContent,
@@ -23,6 +25,7 @@ import {
   Download,
   ChevronRight,
   Activity,
+  RefreshCw,
 } from 'lucide-react';
 import {
   LineChart,
@@ -59,37 +62,19 @@ interface BillingOverview {
 }
 
 export default function BillingPage() {
-  const [overview, setOverview] = useState<BillingOverview | null>(null);
-  const [loading, setLoading] = useState(true);
+  // Fetch billing overview data
+  const { data: overview, isLoading: loading, mutate: refreshBilling } = useAdminAPI<BillingOverview>(
+    '/api/system-admin/billing/overview'
+  );
 
-  useEffect(() => {
-    fetchBillingData();
-  }, []);
-
-  const fetchBillingData = async () => {
+  const handleExportReports = async () => {
     try {
-      setLoading(true);
-      const response = await fetch('/api/system-admin/billing');
-      if (!response.ok) {
-        throw new Error('Failed to fetch billing data');
-      }
-      const data = await response.json();
-      setOverview(data);
-    } catch (error) {
-      console.error('Error fetching billing data:', error);
-      // Set fallback data if API fails
-      setOverview({
-        totalRevenue: 0,
-        activeSubscriptions: 0,
-        churnRate: 0,
-        growthRate: 0,
-        revenueByPlan: [],
-        revenueHistory: [],
-        subscriptionStatus: [],
-        recentTransactions: [],
+      await adminAPI('/api/system-admin/billing/export', {
+        method: 'POST',
+        successMessage: 'Reports exported successfully',
       });
-    } finally {
-      setLoading(false);
+    } catch (error) {
+      console.error('Error exporting reports:', error);
     }
   };
 
@@ -175,6 +160,14 @@ export default function BillingPage() {
               <span>Usage Reports</span>
             </div>
           </Link>
+          <Button
+            onClick={() => refreshBilling()}
+            variant="outline"
+            disabled={loading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
         </div>
       </div>
 
@@ -186,10 +179,10 @@ export default function BillingPage() {
               <div>
                 <p className="text-sm text-gray-500">Total Revenue</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {formatCurrency(overview.totalRevenue)}
+                  {formatCurrency(overview?.totalRevenue || 0)}
                 </p>
                 <p className="text-sm text-green-600 mt-1">
-                  +{overview.growthRate}% from last month
+                  +{overview?.growthRate || 0}% from last month
                 </p>
               </div>
               <div className="h-12 w-12 bg-green-100 rounded-lg flex items-center justify-center">
@@ -205,7 +198,7 @@ export default function BillingPage() {
               <div>
                 <p className="text-sm text-gray-500">Active Subscriptions</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {overview.activeSubscriptions}
+                  {overview?.activeSubscriptions || 0}
                 </p>
                 <p className="text-sm text-blue-600 mt-1">
                   23 trials in progress
@@ -224,7 +217,7 @@ export default function BillingPage() {
               <div>
                 <p className="text-sm text-gray-500">Churn Rate</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {overview.churnRate}%
+                  {overview?.churnRate || 0}%
                 </p>
                 <p className="text-sm text-red-600 mt-1">
                   12 cancellations
@@ -243,7 +236,7 @@ export default function BillingPage() {
               <div>
                 <p className="text-sm text-gray-500">Growth Rate</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  +{overview.growthRate}%
+                  +{overview?.growthRate || 0}%
                 </p>
                 <p className="text-sm text-green-600 mt-1">
                   42 new subscriptions
@@ -267,7 +260,7 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={overview.revenueHistory}>
+              <LineChart data={overview?.revenueHistory || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="month" />
                 <YAxis yAxisId="left" />
@@ -305,7 +298,7 @@ export default function BillingPage() {
             <ResponsiveContainer width="100%" height={300}>
               <PieChart>
                 <Pie
-                  data={overview.subscriptionStatus}
+                  data={overview?.subscriptionStatus || []}
                   cx="50%"
                   cy="50%"
                   labelLine={false}
@@ -314,7 +307,7 @@ export default function BillingPage() {
                   fill="#8884d8"
                   dataKey="count"
                 >
-                  {overview.subscriptionStatus.map((entry, index) => (
+                  {(overview?.subscriptionStatus || []).map((entry, index) => (
                     <Cell key={`cell-${index}`} fill={entry.color} />
                   ))}
                 </Pie>
@@ -336,7 +329,7 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent>
             <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={overview.revenueByPlan}>
+              <BarChart data={overview?.revenueByPlan || []}>
                 <CartesianGrid strokeDasharray="3 3" stroke="#f0f0f0" />
                 <XAxis dataKey="plan" />
                 <YAxis />
@@ -345,7 +338,7 @@ export default function BillingPage() {
               </BarChart>
             </ResponsiveContainer>
             <div className="mt-4 space-y-2">
-              {overview.revenueByPlan.map((plan) => (
+              {(overview?.revenueByPlan || []).map((plan) => (
                 <div key={plan.plan} className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
@@ -371,7 +364,7 @@ export default function BillingPage() {
           </CardHeader>
           <CardContent>
             <div className="space-y-3">
-              {overview.recentTransactions.map((transaction) => (
+              {(overview?.recentTransactions || []).map((transaction) => (
                 <div
                   key={transaction.id}
                   className="flex items-center justify-between p-3 bg-gray-50 rounded-lg hover:bg-gray-100 transition-colors"
@@ -437,7 +430,10 @@ export default function BillingPage() {
               <p className="font-medium">Usage Reports</p>
               <p className="text-xs text-gray-500 mt-1">Monitor resource usage</p>
             </Link>
-            <button className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center">
+            <button
+              onClick={handleExportReports}
+              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
               <FileText className="h-8 w-8 mx-auto mb-2 text-red-600" />
               <p className="font-medium">Export Reports</p>
               <p className="text-xs text-gray-500 mt-1">Download billing data</p>

@@ -1,7 +1,8 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Plus, Edit2, Trash2, Copy, Search, Filter } from "lucide-react";
+import { Plus, Edit2, Trash2, Copy, Search, Filter, RefreshCw } from "lucide-react";
+import { useAdminAPI, adminAPI } from '@/lib/hooks/use-admin-api';
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -72,7 +73,6 @@ const templateTypes = [
 ];
 
 export default function SystemTemplatesPage() {
-  const [templates, setTemplates] = useState<Template[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
   const [selectedCategory, setSelectedCategory] = useState<string>("all");
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false);
@@ -87,48 +87,13 @@ export default function SystemTemplatesPage() {
   });
   const { toast } = useToast();
 
-  // Mock data - replace with actual API calls
-  useEffect(() => {
-    const mockTemplates: Template[] = [
-      {
-        id: "1",
-        name: "Critical Incident Initial Response",
-        category: "Incident Response",
-        type: "Checklist",
-        content: "1. Assess severity\n2. Notify stakeholders {{stakeholder_list}}\n3. Begin containment",
-        variables: ["stakeholder_list"],
-        isActive: true,
-        usageCount: 45,
-        createdAt: "2024-01-15",
-        updatedAt: "2024-01-20",
-      },
-      {
-        id: "2",
-        name: "Data Breach Notification",
-        category: "Communication",
-        type: "Email",
-        content: "Dear {{recipient_name}},\n\nWe are writing to inform you of a security incident...",
-        variables: ["recipient_name"],
-        isActive: true,
-        usageCount: 12,
-        createdAt: "2024-01-10",
-        updatedAt: "2024-01-10",
-      },
-      {
-        id: "3",
-        name: "Ransomware Recovery Runbook",
-        category: "Runbook",
-        type: "Document",
-        content: "## Phase 1: Isolation\n- Disconnect affected systems\n- Document {{affected_systems}}",
-        variables: ["affected_systems"],
-        isActive: true,
-        usageCount: 8,
-        createdAt: "2024-01-05",
-        updatedAt: "2024-01-18",
-      },
-    ];
-    setTemplates(mockTemplates);
-  }, []);
+  // Fetch templates from API
+  const { data, isLoading, mutate: refreshTemplates } = useAdminAPI<{ templates: Template[] }>(
+    '/api/system-admin/content/templates'
+  );
+
+  const templates = data?.templates || [];
+
 
   const filteredTemplates = templates.filter((template) => {
     const matchesSearch =
@@ -151,68 +116,84 @@ export default function SystemTemplatesPage() {
     return variables;
   };
 
-  const handleCreate = () => {
-    const newTemplate: Template = {
-      id: Date.now().toString(),
-      ...formData,
-      variables: extractVariables(formData.content),
-      usageCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-    setTemplates([...templates, newTemplate]);
-    setIsCreateDialogOpen(false);
-    setFormData({ name: "", category: "", type: "", content: "", isActive: true });
-    toast({
-      title: "Template created",
-      description: "System template has been created successfully.",
-    });
+  const handleCreate = async () => {
+    try {
+      const newTemplate = {
+        ...formData,
+        variables: extractVariables(formData.content),
+      };
+
+      await adminAPI('/api/system-admin/content/templates', {
+        method: 'POST',
+        body: newTemplate,
+        successMessage: 'Template created successfully',
+      });
+
+      refreshTemplates();
+      setIsCreateDialogOpen(false);
+      setFormData({ name: "", category: "", type: "", content: "", isActive: true });
+    } catch (error) {
+      console.error('Error creating template:', error);
+    }
   };
 
-  const handleUpdate = () => {
+  const handleUpdate = async () => {
     if (!selectedTemplate) return;
 
-    const updatedTemplates = templates.map((t) =>
-      t.id === selectedTemplate.id
-        ? {
-            ...t,
-            ...formData,
-            variables: extractVariables(formData.content),
-            updatedAt: new Date().toISOString().split("T")[0],
-          }
-        : t
-    );
-    setTemplates(updatedTemplates);
-    setIsEditDialogOpen(false);
-    setSelectedTemplate(null);
-    toast({
-      title: "Template updated",
-      description: "System template has been updated successfully.",
-    });
+    try {
+      const updatedTemplate = {
+        ...formData,
+        variables: extractVariables(formData.content),
+      };
+
+      await adminAPI(`/api/system-admin/content/templates/${selectedTemplate.id}`, {
+        method: 'PUT',
+        body: updatedTemplate,
+        successMessage: 'Template updated successfully',
+      });
+
+      refreshTemplates();
+      setIsEditDialogOpen(false);
+      setSelectedTemplate(null);
+    } catch (error) {
+      console.error('Error updating template:', error);
+    }
   };
 
-  const handleDelete = (id: string) => {
-    setTemplates(templates.filter((t) => t.id !== id));
-    toast({
-      title: "Template deleted",
-      description: "System template has been deleted.",
-    });
+  const handleDelete = async (id: string) => {
+    try {
+      await adminAPI(`/api/system-admin/content/templates/${id}`, {
+        method: 'DELETE',
+        successMessage: 'Template deleted successfully',
+      });
+
+      refreshTemplates();
+    } catch (error) {
+      console.error('Error deleting template:', error);
+    }
   };
 
-  const handleDuplicate = (template: Template) => {
-    const duplicatedTemplate: Template = {
-      ...template,
-      id: Date.now().toString(),
-      name: `${template.name} (Copy)`,
-      usageCount: 0,
-      createdAt: new Date().toISOString().split("T")[0],
-      updatedAt: new Date().toISOString().split("T")[0],
-    };
-    setTemplates([...templates, duplicatedTemplate]);
-    toast({
-      title: "Template duplicated",
-      description: "Template has been duplicated successfully.",
-    });
+  const handleDuplicate = async (template: Template) => {
+    try {
+      const duplicatedTemplate = {
+        ...template,
+        name: `${template.name} (Copy)`,
+      };
+      delete duplicatedTemplate.id;
+      delete duplicatedTemplate.createdAt;
+      delete duplicatedTemplate.updatedAt;
+      delete duplicatedTemplate.usageCount;
+
+      await adminAPI('/api/system-admin/content/templates', {
+        method: 'POST',
+        body: duplicatedTemplate,
+        successMessage: 'Template duplicated successfully',
+      });
+
+      refreshTemplates();
+    } catch (error) {
+      console.error('Error duplicating template:', error);
+    }
   };
 
   const openEditDialog = (template: Template) => {
@@ -237,10 +218,20 @@ export default function SystemTemplatesPage() {
             Manage reusable templates for incidents, communications, and runbooks
           </p>
         </div>
-        <Button onClick={() => setIsCreateDialogOpen(true)}>
-          <Plus className="h-4 w-4 mr-2" />
-          Create Template
-        </Button>
+        <div className="flex gap-2">
+          <Button
+            onClick={() => refreshTemplates()}
+            variant="outline"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={() => setIsCreateDialogOpen(true)}>
+            <Plus className="h-4 w-4 mr-2" />
+            Create Template
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -338,7 +329,20 @@ export default function SystemTemplatesPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filteredTemplates.map((template) => (
+              {isLoading ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8">
+                    Loading templates...
+                  </TableCell>
+                </TableRow>
+              ) : filteredTemplates.length === 0 ? (
+                <TableRow>
+                  <TableCell colSpan={8} className="text-center py-8 text-gray-500">
+                    No templates found
+                  </TableCell>
+                </TableRow>
+              ) : (
+                filteredTemplates.map((template) => (
                 <TableRow key={template.id}>
                   <TableCell className="font-medium">{template.name}</TableCell>
                   <TableCell>
@@ -387,7 +391,8 @@ export default function SystemTemplatesPage() {
                     </div>
                   </TableCell>
                 </TableRow>
-              ))}
+                ))
+              )}
             </TableBody>
           </Table>
         </CardContent>
