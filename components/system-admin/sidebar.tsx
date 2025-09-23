@@ -34,61 +34,61 @@ interface NavItem {
 const navigation: NavItem[] = [
   {
     label: 'Dashboard',
-    href: '/system-admin/dashboard',
+    href: '/admin/dashboard',
     icon: Gauge,
   },
   {
     label: 'Organizations',
     icon: Building2,
     children: [
-      { label: 'All Organizations', href: '/system-admin/organizations', icon: Building2 },
-      { label: 'Create Organization', href: '/system-admin/organizations/new', icon: Building2 },
-      { label: 'Provisioning', href: '/system-admin/organizations/provisioning', icon: Package },
+      { label: 'All Organizations', href: '/admin/organizations', icon: Building2 },
+      { label: 'Create Organization', href: '/admin/organizations/new', icon: Building2 },
+      { label: 'Provisioning', href: '/admin/organizations/provisioning', icon: Package },
     ],
   },
   {
     label: 'Users',
     icon: Users,
     children: [
-      { label: 'All Users', href: '/system-admin/users', icon: Users },
-      { label: 'System Admins', href: '/system-admin/users/admins', icon: Shield },
-      { label: 'Activity Logs', href: '/system-admin/users/activity', icon: FileText },
+      { label: 'All Users', href: '/admin/users', icon: Users },
+      { label: 'System Admins', href: '/admin/users/admins', icon: Shield },
+      { label: 'Activity Logs', href: '/admin/users/activity', icon: FileText },
     ],
   },
   {
     label: 'Licensing',
     icon: Key,
     children: [
-      { label: 'License Management', href: '/system-admin/billing/licenses', icon: Key },
-      { label: 'Subscription Plans', href: '/system-admin/billing/plans', icon: Package },
-      { label: 'Usage Reports', href: '/system-admin/billing/usage', icon: BarChart3 },
+      { label: 'License Management', href: '/admin/billing/licenses', icon: Key },
+      { label: 'Subscription Plans', href: '/admin/billing/plans', icon: Package },
+      { label: 'Usage Reports', href: '/admin/billing/usage', icon: BarChart3 },
     ],
   },
   {
     label: 'Content',
     icon: Layers,
     children: [
-      { label: 'System Templates', href: '/system-admin/content/templates', icon: FileText },
-      { label: 'Global Dropdowns', href: '/system-admin/content/dropdowns', icon: Database },
-      { label: 'Default Tags', href: '/system-admin/content/tags', icon: Layers },
+      { label: 'System Templates', href: '/admin/content/templates', icon: FileText },
+      { label: 'Global Dropdowns', href: '/admin/content/dropdowns', icon: Database },
+      { label: 'Default Tags', href: '/admin/content/tags', icon: Layers },
     ],
   },
   {
     label: 'Settings',
     icon: Settings,
     children: [
-      { label: 'System Settings', href: '/system-admin/settings', icon: Settings },
-      { label: 'API Keys', href: '/system-admin/settings/api-keys', icon: Key },
-      { label: 'Security', href: '/system-admin/settings/security', icon: Shield },
+      { label: 'System Settings', href: '/admin/settings', icon: Settings },
+      { label: 'API Keys', href: '/admin/settings/api-keys', icon: Key },
+      { label: 'Security', href: '/admin/settings/security', icon: Shield },
     ],
   },
   {
     label: 'Monitoring',
     icon: BarChart3,
     children: [
-      { label: 'System Health', href: '/system-admin/monitoring/health', icon: AlertTriangle },
-      { label: 'Audit Logs', href: '/system-admin/monitoring/audit', icon: FileText },
-      { label: 'Analytics', href: '/system-admin/monitoring/analytics', icon: BarChart3 },
+      { label: 'System Health', href: '/admin/monitoring/health', icon: AlertTriangle },
+      { label: 'Audit Logs', href: '/admin/monitoring/audit', icon: FileText },
+      { label: 'Analytics', href: '/admin/monitoring/analytics', icon: BarChart3 },
     ],
   },
 ];
@@ -126,7 +126,7 @@ export function SystemAdminSidebar({ user }: SystemAdminSidebarProps) {
     <div className="w-64 bg-gray-900 text-gray-100 flex flex-col">
       {/* Logo */}
       <div className="p-6 border-b border-gray-800">
-        <Link href="/system-admin/dashboard" className="flex items-center space-x-3">
+        <Link href="/admin/dashboard" className="flex items-center space-x-3">
           <Shield className="h-8 w-8 text-red-500" />
           <div>
             <h2 className="text-xl font-bold">Sekuriti.io</h2>
