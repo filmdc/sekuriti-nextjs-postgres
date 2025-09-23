@@ -41,7 +41,7 @@ const listParamsSchema = z.object({
   isActive: z.coerce.boolean().optional(),
 });
 
-async function GET(request: NextRequest) {
+async function handleGET(request: NextRequest) {
   try {
     const { searchParams } = new URL(request.url);
     const params = listParamsSchema.parse(Object.fromEntries(searchParams));
@@ -87,7 +87,7 @@ async function GET(request: NextRequest) {
   }
 }
 
-async function POST(request: NextRequest, context: any) {
+async function handlePOST(request: NextRequest, context: any) {
   try {
     const body = await request.json();
     const data = createDropdownSchema.parse(body);
@@ -148,4 +148,5 @@ async function POST(request: NextRequest, context: any) {
   }
 }
 
-export { withSystemAdmin(GET) as GET, withSystemAdmin(POST) as POST };
+export const GET = withSystemAdmin(handleGET);
+export const POST = withSystemAdmin(handlePOST);
