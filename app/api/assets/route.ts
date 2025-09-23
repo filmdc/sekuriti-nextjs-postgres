@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server';
 import { getUser } from '@/lib/db/queries';
 import { getAssets, createAsset, exportAssets } from '@/lib/db/queries-assets';
 import { z } from 'zod';
+import { enforceQuota, updateResourceCount } from '@/lib/middleware/quota-enforcement';
+import { QuotaExceededError } from '@/lib/types/api-responses';
 
 // GET /api/assets - List assets
 export async function GET(request: NextRequest) {
@@ -71,6 +73,26 @@ export async function POST(request: NextRequest) {
     });
 
     const validatedData = assetSchema.parse(body);
+
+    // Check quota before creating asset
+    try {
+      await enforceQuota(user.teamId, 'assets', 1);
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            quotaExceeded: true,
+            resourceType: error.resourceType,
+            current: error.current,
+            limit: error.limit,
+            upgradeUrl: error.upgradeUrl
+          },
+          { status: 402 }
+        );
+      }
+      throw error;
+    }
 
     const asset = await createAsset({
       ...validatedData,

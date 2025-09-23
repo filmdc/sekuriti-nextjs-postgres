@@ -16,6 +16,8 @@ import { tags, taggables } from '@/lib/db/schema-tags';
 import { eq, and, or, like, desc, asc, count } from 'drizzle-orm';
 import { users } from '@/lib/db/schema';
 import { revalidatePath } from 'next/cache';
+import { enforceQuota } from '@/lib/middleware/quota-enforcement';
+import { QuotaExceededError } from '@/lib/types/api-responses';
 
 export async function getRunbooks(filters?: {
   search?: string;
@@ -201,6 +203,16 @@ export async function createRunbook(data: {
   const team = await getTeamForUser();
   if (!team) {
     throw new Error('Team not found');
+  }
+
+  // Check quota before creating runbook
+  try {
+    await enforceQuota(team.id, 'runbooks', 1);
+  } catch (error) {
+    if (error instanceof QuotaExceededError) {
+      throw new Error(`Quota exceeded: ${error.message}. Please upgrade your plan to create more runbooks.`);
+    }
+    throw error;
   }
 
   // Create runbook

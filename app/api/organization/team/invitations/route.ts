@@ -4,6 +4,8 @@ import { invitations, teamMembers, users, activityLogs } from '@/lib/db/schema';
 import { eq, and } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 import { ActivityType } from '@/lib/db/schema';
+import { enforceQuota } from '@/lib/middleware/quota-enforcement';
+import { QuotaExceededError } from '@/lib/types/api-responses';
 
 export async function GET(request: NextRequest) {
   try {
@@ -119,6 +121,26 @@ export async function POST(request: NextRequest) {
 
     if (existingInvitation) {
       return NextResponse.json({ error: 'Invitation already sent to this email' }, { status: 400 });
+    }
+
+    // Check quota before sending invitation (this will add a user when accepted)
+    try {
+      await enforceQuota(organizationId, 'users', 1);
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            quotaExceeded: true,
+            resourceType: error.resourceType,
+            current: error.current,
+            limit: error.limit,
+            upgradeUrl: error.upgradeUrl
+          },
+          { status: 402 }
+        );
+      }
+      throw error;
     }
 
     // Create invitation

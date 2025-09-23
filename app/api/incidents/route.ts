@@ -3,6 +3,8 @@ import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { createIncident } from '@/lib/db/queries-ir';
 import { db } from '@/lib/db/drizzle';
 import { activityLogs, ActivityType } from '@/lib/db/schema';
+import { enforceQuota, updateResourceCount } from '@/lib/middleware/quota-enforcement';
+import { QuotaExceededError } from '@/lib/types/api-responses';
 
 export async function POST(request: NextRequest) {
   try {
@@ -24,6 +26,26 @@ export async function POST(request: NextRequest) {
         { error: 'Missing required fields' },
         { status: 400 }
       );
+    }
+
+    // Check quota before creating incident
+    try {
+      await enforceQuota(team.id, 'incidents', 1);
+    } catch (error) {
+      if (error instanceof QuotaExceededError) {
+        return NextResponse.json(
+          {
+            error: error.message,
+            quotaExceeded: true,
+            resourceType: error.resourceType,
+            current: error.current,
+            limit: error.limit,
+            upgradeUrl: error.upgradeUrl
+          },
+          { status: 402 }
+        );
+      }
+      throw error;
     }
 
     // Create the incident
@@ -52,6 +74,9 @@ export async function POST(request: NextRequest) {
       action: ActivityType.CREATE_INCIDENT,
       ipAddress: request.headers.get('x-forwarded-for') || '',
     });
+
+    // Update incident count (this is handled automatically by quota enforcement)
+    // but we could add explicit counter updates here if needed
 
     return NextResponse.json(incident);
   } catch (error) {
