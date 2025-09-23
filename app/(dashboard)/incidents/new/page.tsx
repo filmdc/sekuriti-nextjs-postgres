@@ -1,6 +1,6 @@
 'use client';
 
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useRouter } from 'next/navigation';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,29 +9,22 @@ import { Label } from '@/components/ui/label';
 import { Breadcrumb } from '@/components/ui/breadcrumb';
 import { AlertTriangle, ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
+import { QuotaErrorAlert } from '@/components/quota/quota-error-alert';
+import { QuotaWarningBadge } from '@/components/quota/quota-warning-badge';
+import { useOrganizationLimits } from '@/lib/hooks/use-organization-limits';
+import { useQuotaError } from '@/lib/hooks/use-organization-limits';
+import { toast } from 'sonner';
+import { DynamicSelect } from '@/components/ui/dynamic-select';
 
-const classificationOptions = [
-  { value: 'malware', label: 'Malware' },
-  { value: 'phishing', label: 'Phishing' },
-  { value: 'data_breach', label: 'Data Breach' },
-  { value: 'ddos', label: 'DDoS Attack' },
-  { value: 'insider_threat', label: 'Insider Threat' },
-  { value: 'ransomware', label: 'Ransomware' },
-  { value: 'social_engineering', label: 'Social Engineering' },
-  { value: 'supply_chain', label: 'Supply Chain' },
-  { value: 'other', label: 'Other' },
-];
-
-const severityOptions = [
-  { value: 'low', label: 'Low', color: 'bg-blue-100 text-blue-800' },
-  { value: 'medium', label: 'Medium', color: 'bg-yellow-100 text-yellow-800' },
-  { value: 'high', label: 'High', color: 'bg-orange-100 text-orange-800' },
-  { value: 'critical', label: 'Critical', color: 'bg-red-100 text-red-800' },
-];
+// Options are now loaded dynamically from the API
 
 export default function NewIncidentPage() {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [apiError, setApiError] = useState<any>(null);
+  const { limits, isLoading: limitsLoading } = useOrganizationLimits();
+  const { isQuotaError, quotaError } = useQuotaError(apiError);
+
   const [formData, setFormData] = useState({
     title: '',
     description: '',
@@ -40,6 +33,12 @@ export default function NewIncidentPage() {
     detectionDetails: '',
   });
 
+  // Check if we're approaching or at quota limit
+  const incidentQuotaReached = limits && limits.maxIncidents &&
+    limits.currentUsers >= limits.maxIncidents;
+  const incidentQuotaWarning = limits && limits.maxIncidents &&
+    limits.currentUsers >= limits.maxIncidents * 0.8;
+
   const breadcrumbItems = [
     { label: 'Incidents', href: '/incidents', icon: AlertTriangle },
     { label: 'New Incident' }
@@ -47,6 +46,7 @@ export default function NewIncidentPage() {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setApiError(null);
     setIsSubmitting(true);
 
     try {
@@ -58,15 +58,26 @@ export default function NewIncidentPage() {
         body: JSON.stringify(formData),
       });
 
+      const data = await response.json();
+
       if (!response.ok) {
-        throw new Error('Failed to create incident');
+        // Check for quota or feature errors
+        if (data.code === 'QUOTA_EXCEEDED' || data.code === 'FEATURE_RESTRICTED') {
+          setApiError(data);
+          return;
+        }
+        throw new Error(data.message || 'Failed to create incident');
       }
 
-      const incident = await response.json();
-      router.push(`/incidents/${incident.id}`);
+      toast.success('Incident created successfully');
+      router.push(`/incidents/${data.id}`);
     } catch (error) {
       console.error('Error creating incident:', error);
-      alert('Failed to create incident. Please try again.');
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error('Failed to create incident. Please try again.');
+      }
     } finally {
       setIsSubmitting(false);
     }
@@ -85,13 +96,30 @@ export default function NewIncidentPage() {
             </Link>
           </Button>
           <div>
-            <h2 className="text-3xl font-bold tracking-tight">Record New Incident</h2>
+            <div className="flex items-center gap-2">
+              <h2 className="text-3xl font-bold tracking-tight">Record New Incident</h2>
+              {limits && limits.maxIncidents && (
+                <QuotaWarningBadge
+                  current={limits.currentUsers || 0}
+                  limit={limits.maxIncidents}
+                  resource="incidents"
+                />
+              )}
+            </div>
             <p className="text-muted-foreground mt-2">
               Document a security incident for tracking and response
             </p>
           </div>
         </div>
       </div>
+
+      {/* Quota Error Alert */}
+      {quotaError && (
+        <QuotaErrorAlert
+          error={quotaError}
+          onDismiss={() => setApiError(null)}
+        />
+      )}
 
       <form onSubmit={handleSubmit}>
         <div className="grid gap-6">
@@ -125,36 +153,25 @@ export default function NewIncidentPage() {
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="grid gap-2">
                   <Label htmlFor="classification">Classification *</Label>
-                  <select
-                    id="classification"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  <DynamicSelect
+                    dropdownKey="incident_type"
                     value={formData.classification}
-                    onChange={(e) => setFormData({ ...formData, classification: e.target.value })}
+                    onValueChange={(value) => setFormData({ ...formData, classification: value })}
+                    placeholder="Select incident type"
                     required
-                  >
-                    {classificationOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
 
                 <div className="grid gap-2">
                   <Label htmlFor="severity">Severity *</Label>
-                  <select
-                    id="severity"
-                    className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+                  <DynamicSelect
+                    dropdownKey="incident_severity"
                     value={formData.severity}
-                    onChange={(e) => setFormData({ ...formData, severity: e.target.value })}
+                    onValueChange={(value) => setFormData({ ...formData, severity: value })}
+                    placeholder="Select severity level"
+                    showDescription
                     required
-                  >
-                    {severityOptions.map((option) => (
-                      <option key={option.value} value={option.value}>
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
+                  />
                 </div>
               </div>
             </CardContent>
@@ -182,11 +199,19 @@ export default function NewIncidentPage() {
             <Button type="button" variant="ghost" asChild>
               <Link href="/incidents">Cancel</Link>
             </Button>
-            <Button type="submit" disabled={isSubmitting}>
+            <Button
+              type="submit"
+              disabled={isSubmitting || incidentQuotaReached}
+            >
               {isSubmitting ? (
                 <>
                   <AlertTriangle className="mr-2 h-4 w-4 animate-pulse" />
                   Creating...
+                </>
+              ) : incidentQuotaReached ? (
+                <>
+                  <AlertTriangle className="mr-2 h-4 w-4" />
+                  Quota Exceeded
                 </>
               ) : (
                 <>
