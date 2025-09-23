@@ -99,6 +99,8 @@ export async function PUT(request: NextRequest) {
     }
 
     // Update organization settings
+    // Note: email field is part of the frontend form but needs to be handled separately
+    // as it's not part of the teams table - it would be stored in a separate org settings table
     await db
       .update(teams)
       .set({

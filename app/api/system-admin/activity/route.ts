@@ -94,19 +94,43 @@ export const GET = withSystemAdmin(async (
       .where(whereClause);
 
     // Transform activities to match expected format
-    const formattedActivities = activities.map(activity => ({
-      id: activity.id,
-      userId: activity.userId,
-      userName: activity.userName || 'Unknown',
-      userEmail: activity.userEmail || 'unknown@example.com',
-      action: activity.action,
-      ipAddress: activity.ipAddress || 'Unknown',
-      userAgent: activity.userAgent || 'Unknown',
-      organizationId: activity.teamId,
-      organizationName: activity.teamName || 'Unknown',
-      success: !activity.action.includes('FAILED'),
-      timestamp: activity.timestamp,
-    }));
+    const formattedActivities = activities.map(activity => {
+      // Map action types to more readable descriptions and severity
+      const getActivityInfo = (action: string) => {
+        switch (action) {
+          case 'SIGN_IN':
+            return { type: 'auth', severity: 'info' as const };
+          case 'SIGN_UP':
+            return { type: 'user', severity: 'info' as const };
+          case 'CREATE_TEAM':
+            return { type: 'team', severity: 'info' as const };
+          case 'UPDATE_PASSWORD':
+            return { type: 'auth', severity: 'warning' as const };
+          case 'DELETE_ACCOUNT':
+            return { type: 'user', severity: 'critical' as const };
+          default:
+            return { type: 'general', severity: 'info' as const };
+        }
+      };
+
+      const activityInfo = getActivityInfo(activity.action);
+
+      return {
+        id: activity.id.toString(),
+        type: activityInfo.type,
+        action: activity.action,
+        userId: activity.userId,
+        userName: activity.userName || 'Unknown',
+        userEmail: activity.userEmail || 'unknown@example.com',
+        teamId: activity.teamId,
+        teamName: activity.teamName || 'Unknown',
+        ipAddress: activity.ipAddress || 'Unknown',
+        userAgent: activity.userAgent || 'Unknown',
+        metadata: {},
+        createdAt: activity.timestamp.toISOString(),
+        severity: activityInfo.severity,
+      };
+    });
 
     // Get security alerts (suspicious activities)
     const securityAlerts = [];

@@ -1,3 +1,5 @@
+'use client';
+
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -16,9 +18,6 @@ import {
   Check,
   Clock,
 } from 'lucide-react';
-
-'use client';
-
 import { useEffect, useState } from 'react';
 import { toast } from '@/components/ui/use-toast';
 

@@ -324,7 +324,7 @@ export default function OrganizationSettingsPage() {
                 <div className="space-y-2">
                   <Label htmlFor="email">
                     <Mail className="w-4 h-4 inline mr-1" />
-                    Email Address
+                    Contact Email Address
                   </Label>
                   <Input
                     id="email"
@@ -332,7 +332,11 @@ export default function OrganizationSettingsPage() {
                     value={settings.email}
                     onChange={(e) => updateSettings('email', e.target.value)}
                     placeholder="contact@example.com"
+                    disabled
                   />
+                  <p className="text-xs text-muted-foreground">
+                    Organization contact email is managed in team settings
+                  </p>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="phone">

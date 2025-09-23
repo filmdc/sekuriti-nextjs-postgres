@@ -1,0 +1,276 @@
+name,type,criticality,description,location,owner,ip_address,serial_number,asset_subtype
+PROD-WEB-01,hardware,Critical,Production web server 1,Datacenter A,IT Operations,10.10.1.10,SRV2024A001,Server
+PROD-WEB-02,hardware,Critical,Production web server 2,Datacenter A,IT Operations,10.10.1.11,SRV2024A002,Server
+PROD-DB-01,hardware,Critical,Primary database server,Datacenter A,Database Team,10.10.2.10,SRV2024A003,Server
+PROD-DB-02,hardware,Critical,Secondary database server,Datacenter B,Database Team,10.10.2.11,SRV2024B001,Server
+PROD-APP-01,hardware,High,Application server 1,Datacenter A,Development Team,10.10.3.10,SRV2024A004,Server
+PROD-APP-02,hardware,High,Application server 2,Datacenter B,Development Team,10.10.3.11,SRV2024B002,Server
+DEV-SERVER-01,hardware,Medium,Development server,Office Building,Development Team,10.20.1.10,SRV2024C001,Server
+DEV-SERVER-02,hardware,Medium,Testing server,Office Building,QA Team,10.20.1.11,SRV2024C002,Server
+BACKUP-01,hardware,High,Backup server primary,Datacenter A,IT Operations,10.10.4.10,SRV2024A005,Server
+BACKUP-02,hardware,High,Backup server secondary,Datacenter B,IT Operations,10.10.4.11,SRV2024B003,Server
+MAIL-01,hardware,Critical,Exchange mail server,Datacenter A,IT Operations,10.10.5.10,SRV2024A006,Server
+FILE-01,hardware,High,File server,Office Building,IT Operations,10.20.2.10,SRV2024C003,Server
+VM-PROD-01,hardware,High,Virtual machine - Production app,Virtual Infrastructure,Cloud Team,10.30.1.10,VM2024001,Server
+VM-PROD-02,hardware,High,Virtual machine - Production services,Virtual Infrastructure,Cloud Team,10.30.1.11,VM2024002,Server
+VM-DEV-01,hardware,Medium,Virtual machine - Dev environment,Virtual Infrastructure,Development Team,10.30.2.10,VM2024003,Server
+VM-DEV-02,hardware,Medium,Virtual machine - Testing,Virtual Infrastructure,QA Team,10.30.2.11,VM2024004,Server
+VM-MONITOR-01,hardware,High,Virtual machine - Monitoring,Virtual Infrastructure,IT Operations,10.30.3.10,VM2024005,Server
+VM-SECURITY-01,hardware,Critical,Virtual machine - Security tools,Virtual Infrastructure,Security Team,10.30.3.11,VM2024006,Server
+VM-BACKUP-01,hardware,High,Virtual machine - Backup services,Virtual Infrastructure,IT Operations,10.30.4.10,VM2024007,Server
+VM-STAGING-01,hardware,Medium,Virtual machine - Staging env,Virtual Infrastructure,Development Team,10.30.4.11,VM2024008,Server
+DESKTOP-001,hardware,Low,Desktop computer - Finance dept,Floor 1,Finance Team,10.40.1.1,WKS2024001,Desktop
+DESKTOP-002,hardware,Low,Desktop computer - Finance dept,Floor 1,Finance Team,10.40.1.2,WKS2024002,Desktop
+DESKTOP-003,hardware,Low,Desktop computer - HR dept,Floor 1,HR Team,10.40.1.3,WKS2024003,Desktop
+DESKTOP-004,hardware,Low,Desktop computer - HR dept,Floor 1,HR Team,10.40.1.4,WKS2024004,Desktop
+DESKTOP-005,hardware,Low,Desktop computer - Sales,Floor 2,Sales Team,10.40.2.1,WKS2024005,Desktop
+DESKTOP-006,hardware,Low,Desktop computer - Sales,Floor 2,Sales Team,10.40.2.2,WKS2024006,Desktop
+DESKTOP-007,hardware,Low,Desktop computer - Sales,Floor 2,Sales Team,10.40.2.3,WKS2024007,Desktop
+DESKTOP-008,hardware,Low,Desktop computer - Marketing,Floor 2,Marketing Team,10.40.2.4,WKS2024008,Desktop
+DESKTOP-009,hardware,Low,Desktop computer - Marketing,Floor 2,Marketing Team,10.40.2.5,WKS2024009,Desktop
+DESKTOP-010,hardware,Low,Desktop computer - Marketing,Floor 2,Marketing Team,10.40.2.6,WKS2024010,Desktop
+LAPTOP-001,hardware,Medium,Laptop - Executive,Mobile,Executive Team,DHCP,LTP2024001,Laptop
+LAPTOP-002,hardware,Medium,Laptop - Executive,Mobile,Executive Team,DHCP,LTP2024002,Laptop
+LAPTOP-003,hardware,Medium,Laptop - Executive,Mobile,Executive Team,DHCP,LTP2024003,Laptop
+LAPTOP-004,hardware,Medium,Laptop - Executive,Mobile,Executive Team,DHCP,LTP2024004,Laptop
+LAPTOP-005,hardware,Medium,Laptop - Executive,Mobile,Executive Team,DHCP,LTP2024005,Laptop
+LAPTOP-006,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024006,Laptop
+LAPTOP-007,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024007,Laptop
+LAPTOP-008,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024008,Laptop
+LAPTOP-009,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024009,Laptop
+LAPTOP-010,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024010,Laptop
+LAPTOP-011,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024011,Laptop
+LAPTOP-012,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024012,Laptop
+LAPTOP-013,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024013,Laptop
+LAPTOP-014,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024014,Laptop
+LAPTOP-015,hardware,Low,Laptop - Sales team,Mobile,Sales Team,DHCP,LTP2024015,Laptop
+LAPTOP-016,hardware,Low,Laptop - Marketing,Mobile,Marketing Team,DHCP,LTP2024016,Laptop
+LAPTOP-017,hardware,Low,Laptop - Marketing,Mobile,Marketing Team,DHCP,LTP2024017,Laptop
+LAPTOP-018,hardware,Low,Laptop - Marketing,Mobile,Marketing Team,DHCP,LTP2024018,Laptop
+LAPTOP-019,hardware,Low,Laptop - Marketing,Mobile,Marketing Team,DHCP,LTP2024019,Laptop
+LAPTOP-020,hardware,Low,Laptop - Marketing,Mobile,Marketing Team,DHCP,LTP2024020,Laptop
+LAPTOP-021,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024021,Laptop
+LAPTOP-022,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024022,Laptop
+LAPTOP-023,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024023,Laptop
+LAPTOP-024,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024024,Laptop
+LAPTOP-025,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024025,Laptop
+LAPTOP-026,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024026,Laptop
+LAPTOP-027,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024027,Laptop
+LAPTOP-028,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024028,Laptop
+LAPTOP-029,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024029,Laptop
+LAPTOP-030,hardware,High,Laptop - Developer,Mobile,Development Team,DHCP,LTP2024030,Laptop
+LAPTOP-031,hardware,High,Laptop - IT Admin,Mobile,IT Operations,DHCP,LTP2024031,Laptop
+LAPTOP-032,hardware,High,Laptop - IT Admin,Mobile,IT Operations,DHCP,LTP2024032,Laptop
+LAPTOP-033,hardware,High,Laptop - IT Admin,Mobile,IT Operations,DHCP,LTP2024033,Laptop
+LAPTOP-034,hardware,High,Laptop - IT Admin,Mobile,IT Operations,DHCP,LTP2024034,Laptop
+LAPTOP-035,hardware,High,Laptop - IT Admin,Mobile,IT Operations,DHCP,LTP2024035,Laptop
+LAPTOP-036,hardware,Critical,Laptop - Security team,Mobile,Security Team,DHCP,LTP2024036,Laptop
+LAPTOP-037,hardware,Critical,Laptop - Security team,Mobile,Security Team,DHCP,LTP2024037,Laptop
+LAPTOP-038,hardware,Critical,Laptop - Security team,Mobile,Security Team,DHCP,LTP2024038,Laptop
+LAPTOP-039,hardware,Critical,Laptop - Security team,Mobile,Security Team,DHCP,LTP2024039,Laptop
+LAPTOP-040,hardware,Critical,Laptop - Security team,Mobile,Security Team,DHCP,LTP2024040,Laptop
+DESKTOP-011,hardware,Low,Desktop - Reception,Floor 1,Reception,10.40.1.11,WKS2024011,Desktop
+DESKTOP-012,hardware,Low,Desktop - Reception,Floor 1,Reception,10.40.1.12,WKS2024012,Desktop
+DESKTOP-013,hardware,Medium,Desktop - IT Support,Floor 3,IT Operations,10.40.3.1,WKS2024013,Desktop
+DESKTOP-014,hardware,Medium,Desktop - IT Support,Floor 3,IT Operations,10.40.3.2,WKS2024014,Desktop
+DESKTOP-015,hardware,Medium,Desktop - IT Support,Floor 3,IT Operations,10.40.3.3,WKS2024015,Desktop
+DESKTOP-016,hardware,Medium,Desktop - IT Support,Floor 3,IT Operations,10.40.3.4,WKS2024016,Desktop
+DESKTOP-017,hardware,Medium,Desktop - IT Support,Floor 3,IT Operations,10.40.3.5,WKS2024017,Desktop
+DESKTOP-018,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.6,WKS2024018,Desktop
+DESKTOP-019,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.7,WKS2024019,Desktop
+DESKTOP-020,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.8,WKS2024020,Desktop
+DESKTOP-021,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.9,WKS2024021,Desktop
+DESKTOP-022,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.10,WKS2024022,Desktop
+DESKTOP-023,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.11,WKS2024023,Desktop
+DESKTOP-024,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.12,WKS2024024,Desktop
+DESKTOP-025,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.13,WKS2024025,Desktop
+DESKTOP-026,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.14,WKS2024026,Desktop
+DESKTOP-027,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.15,WKS2024027,Desktop
+DESKTOP-028,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.16,WKS2024028,Desktop
+DESKTOP-029,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.17,WKS2024029,Desktop
+DESKTOP-030,hardware,High,Desktop - Development,Floor 3,Development Team,10.40.3.18,WKS2024030,Desktop
+DESKTOP-031,hardware,Medium,Desktop - QA Testing,Floor 3,QA Team,10.40.3.19,WKS2024031,Desktop
+DESKTOP-032,hardware,Medium,Desktop - QA Testing,Floor 3,QA Team,10.40.3.20,WKS2024032,Desktop
+DESKTOP-033,hardware,Medium,Desktop - QA Testing,Floor 3,QA Team,10.40.3.21,WKS2024033,Desktop
+DESKTOP-034,hardware,Medium,Desktop - QA Testing,Floor 3,QA Team,10.40.3.22,WKS2024034,Desktop
+DESKTOP-035,hardware,Medium,Desktop - QA Testing,Floor 3,QA Team,10.40.3.23,WKS2024035,Desktop
+DESKTOP-036,hardware,Critical,Desktop - Security Operations,Floor 4,Security Team,10.40.4.1,WKS2024036,Desktop
+DESKTOP-037,hardware,Critical,Desktop - Security Operations,Floor 4,Security Team,10.40.4.2,WKS2024037,Desktop
+DESKTOP-038,hardware,Critical,Desktop - Security Operations,Floor 4,Security Team,10.40.4.3,WKS2024038,Desktop
+DESKTOP-039,hardware,Critical,Desktop - Security Operations,Floor 4,Security Team,10.40.4.4,WKS2024039,Desktop
+DESKTOP-040,hardware,Critical,Desktop - Security Operations,Floor 4,Security Team,10.40.4.5,WKS2024040,Desktop
+LAPTOP-041,hardware,Low,Laptop - Finance,Mobile,Finance Team,DHCP,LTP2024041,Laptop
+LAPTOP-042,hardware,Low,Laptop - Finance,Mobile,Finance Team,DHCP,LTP2024042,Laptop
+LAPTOP-043,hardware,Low,Laptop - Finance,Mobile,Finance Team,DHCP,LTP2024043,Laptop
+LAPTOP-044,hardware,Low,Laptop - Finance,Mobile,Finance Team,DHCP,LTP2024044,Laptop
+LAPTOP-045,hardware,Low,Laptop - Finance,Mobile,Finance Team,DHCP,LTP2024045,Laptop
+LAPTOP-046,hardware,Low,Laptop - HR,Mobile,HR Team,DHCP,LTP2024046,Laptop
+LAPTOP-047,hardware,Low,Laptop - HR,Mobile,HR Team,DHCP,LTP2024047,Laptop
+LAPTOP-048,hardware,Low,Laptop - HR,Mobile,HR Team,DHCP,LTP2024048,Laptop
+LAPTOP-049,hardware,Low,Laptop - HR,Mobile,HR Team,DHCP,LTP2024049,Laptop
+LAPTOP-050,hardware,Low,Laptop - HR,Mobile,HR Team,DHCP,LTP2024050,Laptop
+LAPTOP-051,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024051,Laptop
+LAPTOP-052,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024052,Laptop
+LAPTOP-053,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024053,Laptop
+LAPTOP-054,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024054,Laptop
+LAPTOP-055,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024055,Laptop
+LAPTOP-056,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024056,Laptop
+LAPTOP-057,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024057,Laptop
+LAPTOP-058,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024058,Laptop
+LAPTOP-059,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024059,Laptop
+LAPTOP-060,hardware,Medium,Laptop - Operations,Mobile,Operations Team,DHCP,LTP2024060,Laptop
+LAPTOP-061,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024061,Laptop
+LAPTOP-062,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024062,Laptop
+LAPTOP-063,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024063,Laptop
+LAPTOP-064,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024064,Laptop
+LAPTOP-065,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024065,Laptop
+LAPTOP-066,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024066,Laptop
+LAPTOP-067,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024067,Laptop
+LAPTOP-068,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024068,Laptop
+LAPTOP-069,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024069,Laptop
+LAPTOP-070,hardware,Medium,Laptop - Customer Service,Mobile,Customer Service,DHCP,LTP2024070,Laptop
+LAPTOP-071,hardware,Medium,Laptop - Project Management,Mobile,Project Management,DHCP,LTP2024071,Laptop
+LAPTOP-072,hardware,Medium,Laptop - Project Management,Mobile,Project Management,DHCP,LTP2024072,Laptop
+LAPTOP-073,hardware,Medium,Laptop - Project Management,Mobile,Project Management,DHCP,LTP2024073,Laptop
+LAPTOP-074,hardware,Medium,Laptop - Project Management,Mobile,Project Management,DHCP,LTP2024074,Laptop
+LAPTOP-075,hardware,Medium,Laptop - Project Management,Mobile,Project Management,DHCP,LTP2024075,Laptop
+LAPTOP-076,hardware,Low,Laptop - Training room,Training Room,Training,DHCP,LTP2024076,Laptop
+LAPTOP-077,hardware,Low,Laptop - Training room,Training Room,Training,DHCP,LTP2024077,Laptop
+LAPTOP-078,hardware,Low,Laptop - Training room,Training Room,Training,DHCP,LTP2024078,Laptop
+LAPTOP-079,hardware,Low,Laptop - Training room,Training Room,Training,DHCP,LTP2024079,Laptop
+LAPTOP-080,hardware,Low,Laptop - Training room,Training Room,Training,DHCP,LTP2024080,Laptop
+LAPTOP-081,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024081,Laptop
+LAPTOP-082,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024082,Laptop
+LAPTOP-083,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024083,Laptop
+LAPTOP-084,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024084,Laptop
+LAPTOP-085,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024085,Laptop
+LAPTOP-086,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024086,Laptop
+LAPTOP-087,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024087,Laptop
+LAPTOP-088,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024088,Laptop
+LAPTOP-089,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024089,Laptop
+LAPTOP-090,hardware,Low,Laptop - Spare,Storage,IT Operations,DHCP,LTP2024090,Laptop
+DESKTOP-041,hardware,Low,Desktop - Accounting,Floor 1,Finance Team,10.40.1.41,WKS2024041,Desktop
+DESKTOP-042,hardware,Low,Desktop - Accounting,Floor 1,Finance Team,10.40.1.42,WKS2024042,Desktop
+DESKTOP-043,hardware,Low,Desktop - Accounting,Floor 1,Finance Team,10.40.1.43,WKS2024043,Desktop
+DESKTOP-044,hardware,Low,Desktop - Accounting,Floor 1,Finance Team,10.40.1.44,WKS2024044,Desktop
+DESKTOP-045,hardware,Low,Desktop - Accounting,Floor 1,Finance Team,10.40.1.45,WKS2024045,Desktop
+DESKTOP-046,hardware,Low,Desktop - Legal,Floor 2,Legal Team,10.40.2.46,WKS2024046,Desktop
+DESKTOP-047,hardware,Low,Desktop - Legal,Floor 2,Legal Team,10.40.2.47,WKS2024047,Desktop
+DESKTOP-048,hardware,Low,Desktop - Legal,Floor 2,Legal Team,10.40.2.48,WKS2024048,Desktop
+DESKTOP-049,hardware,Low,Desktop - Legal,Floor 2,Legal Team,10.40.2.49,WKS2024049,Desktop
+DESKTOP-050,hardware,Low,Desktop - Legal,Floor 2,Legal Team,10.40.2.50,WKS2024050,Desktop
+DESKTOP-051,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.51,WKS2024051,Desktop
+DESKTOP-052,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.52,WKS2024052,Desktop
+DESKTOP-053,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.53,WKS2024053,Desktop
+DESKTOP-054,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.54,WKS2024054,Desktop
+DESKTOP-055,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.55,WKS2024055,Desktop
+DESKTOP-056,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.56,WKS2024056,Desktop
+DESKTOP-057,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.57,WKS2024057,Desktop
+DESKTOP-058,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.58,WKS2024058,Desktop
+DESKTOP-059,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.59,WKS2024059,Desktop
+DESKTOP-060,hardware,Low,Desktop - Customer Service,Floor 1,Customer Service,10.40.1.60,WKS2024060,Desktop
+LAPTOP-091,hardware,Low,Laptop - Intern,Mobile,Various Teams,DHCP,LTP2024091,Laptop
+LAPTOP-092,hardware,Low,Laptop - Intern,Mobile,Various Teams,DHCP,LTP2024092,Laptop
+LAPTOP-093,hardware,Low,Laptop - Intern,Mobile,Various Teams,DHCP,LTP2024093,Laptop
+LAPTOP-094,hardware,Low,Laptop - Intern,Mobile,Various Teams,DHCP,LTP2024094,Laptop
+LAPTOP-095,hardware,Low,Laptop - Intern,Mobile,Various Teams,DHCP,LTP2024095,Laptop
+LAPTOP-096,hardware,Low,Laptop - Contractor,Mobile,Various Teams,DHCP,LTP2024096,Laptop
+LAPTOP-097,hardware,Low,Laptop - Contractor,Mobile,Various Teams,DHCP,LTP2024097,Laptop
+LAPTOP-098,hardware,Low,Laptop - Contractor,Mobile,Various Teams,DHCP,LTP2024098,Laptop
+LAPTOP-099,hardware,Low,Laptop - Contractor,Mobile,Various Teams,DHCP,LTP2024099,Laptop
+LAPTOP-100,hardware,Low,Laptop - Contractor,Mobile,Various Teams,DHCP,LTP2024100,Laptop
+DESKTOP-061,hardware,Low,Desktop - Conference Room A,Conference Room A,Shared,10.40.5.1,WKS2024061,Desktop
+DESKTOP-062,hardware,Low,Desktop - Conference Room B,Conference Room B,Shared,10.40.5.2,WKS2024062,Desktop
+DESKTOP-063,hardware,Low,Desktop - Conference Room C,Conference Room C,Shared,10.40.5.3,WKS2024063,Desktop
+DESKTOP-064,hardware,Low,Desktop - Conference Room D,Conference Room D,Shared,10.40.5.4,WKS2024064,Desktop
+DESKTOP-065,hardware,Low,Desktop - Board Room,Board Room,Executive Team,10.40.5.5,WKS2024065,Desktop
+DESKTOP-066,hardware,Low,Desktop - Training Room 1,Training Room 1,Training,10.40.5.6,WKS2024066,Desktop
+DESKTOP-067,hardware,Low,Desktop - Training Room 2,Training Room 2,Training,10.40.5.7,WKS2024067,Desktop
+DESKTOP-068,hardware,Low,Desktop - Training Room 3,Training Room 3,Training,10.40.5.8,WKS2024068,Desktop
+DESKTOP-069,hardware,Low,Desktop - Break Room,Break Room,Shared,10.40.5.9,WKS2024069,Desktop
+DESKTOP-070,hardware,Low,Desktop - Lobby Kiosk,Lobby,Reception,10.40.5.10,WKS2024070,Desktop
+LAPTOP-101,hardware,Low,Laptop - Event staff,Mobile,Events Team,DHCP,LTP2024101,Laptop
+LAPTOP-102,hardware,Low,Laptop - Event staff,Mobile,Events Team,DHCP,LTP2024102,Laptop
+LAPTOP-103,hardware,Low,Laptop - Event staff,Mobile,Events Team,DHCP,LTP2024103,Laptop
+LAPTOP-104,hardware,Low,Laptop - Event staff,Mobile,Events Team,DHCP,LTP2024104,Laptop
+LAPTOP-105,hardware,Low,Laptop - Event staff,Mobile,Events Team,DHCP,LTP2024105,Laptop
+LAPTOP-106,hardware,Medium,Laptop - Research,Mobile,Research Team,DHCP,LTP2024106,Laptop
+LAPTOP-107,hardware,Medium,Laptop - Research,Mobile,Research Team,DHCP,LTP2024107,Laptop
+LAPTOP-108,hardware,Medium,Laptop - Research,Mobile,Research Team,DHCP,LTP2024108,Laptop
+LAPTOP-109,hardware,Medium,Laptop - Research,Mobile,Research Team,DHCP,LTP2024109,Laptop
+LAPTOP-110,hardware,Medium,Laptop - Research,Mobile,Research Team,DHCP,LTP2024110,Laptop
+LAPTOP-111,hardware,Medium,Laptop - Product Management,Mobile,Product Team,DHCP,LTP2024111,Laptop
+LAPTOP-112,hardware,Medium,Laptop - Product Management,Mobile,Product Team,DHCP,LTP2024112,Laptop
+LAPTOP-113,hardware,Medium,Laptop - Product Management,Mobile,Product Team,DHCP,LTP2024113,Laptop
+LAPTOP-114,hardware,Medium,Laptop - Product Management,Mobile,Product Team,DHCP,LTP2024114,Laptop
+LAPTOP-115,hardware,Medium,Laptop - Product Management,Mobile,Product Team,DHCP,LTP2024115,Laptop
+LAPTOP-116,hardware,Medium,Laptop - Business Analysis,Mobile,Business Analysis,DHCP,LTP2024116,Laptop
+LAPTOP-117,hardware,Medium,Laptop - Business Analysis,Mobile,Business Analysis,DHCP,LTP2024117,Laptop
+LAPTOP-118,hardware,Medium,Laptop - Business Analysis,Mobile,Business Analysis,DHCP,LTP2024118,Laptop
+LAPTOP-119,hardware,Medium,Laptop - Business Analysis,Mobile,Business Analysis,DHCP,LTP2024119,Laptop
+LAPTOP-120,hardware,Medium,Laptop - Business Analysis,Mobile,Business Analysis,DHCP,LTP2024120,Laptop
+LAPTOP-121,hardware,Low,Laptop - Facilities,Mobile,Facilities Team,DHCP,LTP2024121,Laptop
+LAPTOP-122,hardware,Low,Laptop - Facilities,Mobile,Facilities Team,DHCP,LTP2024122,Laptop
+LAPTOP-123,hardware,Low,Laptop - Facilities,Mobile,Facilities Team,DHCP,LTP2024123,Laptop
+LAPTOP-124,hardware,Low,Laptop - Facilities,Mobile,Facilities Team,DHCP,LTP2024124,Laptop
+LAPTOP-125,hardware,Low,Laptop - Facilities,Mobile,Facilities Team,DHCP,LTP2024125,Laptop
+LAPTOP-126,hardware,High,Laptop - Data Science,Mobile,Data Science Team,DHCP,LTP2024126,Laptop
+LAPTOP-127,hardware,High,Laptop - Data Science,Mobile,Data Science Team,DHCP,LTP2024127,Laptop
+LAPTOP-128,hardware,High,Laptop - Data Science,Mobile,Data Science Team,DHCP,LTP2024128,Laptop
+LAPTOP-129,hardware,High,Laptop - Data Science,Mobile,Data Science Team,DHCP,LTP2024129,Laptop
+LAPTOP-130,hardware,High,Laptop - Data Science,Mobile,Data Science Team,DHCP,LTP2024130,Laptop
+LAPTOP-131,hardware,High,Laptop - DevOps,Mobile,DevOps Team,DHCP,LTP2024131,Laptop
+LAPTOP-132,hardware,High,Laptop - DevOps,Mobile,DevOps Team,DHCP,LTP2024132,Laptop
+LAPTOP-133,hardware,High,Laptop - DevOps,Mobile,DevOps Team,DHCP,LTP2024133,Laptop
+LAPTOP-134,hardware,High,Laptop - DevOps,Mobile,DevOps Team,DHCP,LTP2024134,Laptop
+LAPTOP-135,hardware,High,Laptop - DevOps,Mobile,DevOps Team,DHCP,LTP2024135,Laptop
+LAPTOP-136,hardware,Medium,Laptop - Audit,Mobile,Audit Team,DHCP,LTP2024136,Laptop
+LAPTOP-137,hardware,Medium,Laptop - Audit,Mobile,Audit Team,DHCP,LTP2024137,Laptop
+LAPTOP-138,hardware,Medium,Laptop - Audit,Mobile,Audit Team,DHCP,LTP2024138,Laptop
+LAPTOP-139,hardware,Medium,Laptop - Audit,Mobile,Audit Team,DHCP,LTP2024139,Laptop
+LAPTOP-140,hardware,Medium,Laptop - Audit,Mobile,Audit Team,DHCP,LTP2024140,Laptop
+LAPTOP-141,hardware,Critical,Laptop - Compliance,Mobile,Compliance Team,DHCP,LTP2024141,Laptop
+LAPTOP-142,hardware,Critical,Laptop - Compliance,Mobile,Compliance Team,DHCP,LTP2024142,Laptop
+LAPTOP-143,hardware,Critical,Laptop - Compliance,Mobile,Compliance Team,DHCP,LTP2024143,Laptop
+LAPTOP-144,hardware,Critical,Laptop - Compliance,Mobile,Compliance Team,DHCP,LTP2024144,Laptop
+LAPTOP-145,hardware,Critical,Laptop - Compliance,Mobile,Compliance Team,DHCP,LTP2024145,Laptop
+LAPTOP-146,hardware,Low,Laptop - Reception,Reception,Reception,DHCP,LTP2024146,Laptop
+LAPTOP-147,hardware,Low,Laptop - Reception,Reception,Reception,DHCP,LTP2024147,Laptop
+LAPTOP-148,hardware,Low,Laptop - Reception,Reception,Reception,DHCP,LTP2024148,Laptop
+LAPTOP-149,hardware,Low,Laptop - Reception,Reception,Reception,DHCP,LTP2024149,Laptop
+LAPTOP-150,hardware,Low,Laptop - Reception,Reception,Reception,DHCP,LTP2024150,Laptop
+FW-MAIN-01,hardware,Critical,Main firewall - Palo Alto PA-850,Datacenter A,Security Team,10.0.0.1,FW2024001,Firewall
+SW-CORE-01,hardware,Critical,Core switch - Cisco 9500,Datacenter A,Network Team,10.0.1.1,SW2024001,Switch
+SW-CORE-02,hardware,Critical,Core switch - Cisco 9500,Datacenter B,Network Team,10.0.1.2,SW2024002,Switch
+SW-DIST-01,hardware,High,Distribution switch - Floor 1,Floor 1,Network Team,10.0.2.1,SW2024003,Switch
+SW-DIST-02,hardware,High,Distribution switch - Floor 2,Floor 2,Network Team,10.0.2.2,SW2024004,Switch
+SW-DIST-03,hardware,High,Distribution switch - Floor 3,Floor 3,Network Team,10.0.2.3,SW2024005,Switch
+SW-DIST-04,hardware,High,Distribution switch - Floor 4,Floor 4,Network Team,10.0.2.4,SW2024006,Switch
+SW-ACCESS-01,hardware,Medium,Access switch - Building A Floor 1,Floor 1,Network Team,10.0.3.1,SW2024007,Switch
+SW-ACCESS-02,hardware,Medium,Access switch - Building A Floor 1,Floor 1,Network Team,10.0.3.2,SW2024008,Switch
+SW-ACCESS-03,hardware,Medium,Access switch - Building A Floor 2,Floor 2,Network Team,10.0.3.3,SW2024009,Switch
+SW-ACCESS-04,hardware,Medium,Access switch - Building A Floor 2,Floor 2,Network Team,10.0.3.4,SW2024010,Switch
+SW-ACCESS-05,hardware,Medium,Access switch - Building A Floor 3,Floor 3,Network Team,10.0.3.5,SW2024011,Switch
+SW-ACCESS-06,hardware,Medium,Access switch - Building A Floor 3,Floor 3,Network Team,10.0.3.6,SW2024012,Switch
+SW-ACCESS-07,hardware,Medium,Access switch - Building A Floor 4,Floor 4,Network Team,10.0.3.7,SW2024013,Switch
+SW-ACCESS-08,hardware,Medium,Access switch - Building A Floor 4,Floor 4,Network Team,10.0.3.8,SW2024014,Switch
+AP-01-FL1,hardware,Medium,WiFi Access Point - Floor 1 Zone A,Floor 1,Network Team,10.0.4.1,AP2024001,Access Point
+AP-02-FL1,hardware,Medium,WiFi Access Point - Floor 1 Zone B,Floor 1,Network Team,10.0.4.2,AP2024002,Access Point
+AP-03-FL1,hardware,Medium,WiFi Access Point - Floor 1 Zone C,Floor 1,Network Team,10.0.4.3,AP2024003,Access Point
+AP-04-FL1,hardware,Medium,WiFi Access Point - Floor 1 Zone D,Floor 1,Network Team,10.0.4.4,AP2024004,Access Point
+AP-05-FL2,hardware,Medium,WiFi Access Point - Floor 2 Zone A,Floor 2,Network Team,10.0.4.5,AP2024005,Access Point
+AP-06-FL2,hardware,Medium,WiFi Access Point - Floor 2 Zone B,Floor 2,Network Team,10.0.4.6,AP2024006,Access Point
+AP-07-FL2,hardware,Medium,WiFi Access Point - Floor 2 Zone C,Floor 2,Network Team,10.0.4.7,AP2024007,Access Point
+AP-08-FL2,hardware,Medium,WiFi Access Point - Floor 2 Zone D,Floor 2,Network Team,10.0.4.8,AP2024008,Access Point
+AP-09-FL3,hardware,Medium,WiFi Access Point - Floor 3 Zone A,Floor 3,Network Team,10.0.4.9,AP2024009,Access Point
+AP-10-FL3,hardware,Medium,WiFi Access Point - Floor 3 Zone B,Floor 3,Network Team,10.0.4.10,AP2024010,Access Point
+AP-11-FL3,hardware,Medium,WiFi Access Point - Floor 3 Zone C,Floor 3,Network Team,10.0.4.11,AP2024011,Access Point
+AP-12-FL3,hardware,Medium,WiFi Access Point - Floor 3 Zone D,Floor 3,Network Team,10.0.4.12,AP2024012,Access Point
+AP-13-FL4,hardware,Medium,WiFi Access Point - Floor 4 Zone A,Floor 4,Network Team,10.0.4.13,AP2024013,Access Point
+AP-14-FL4,hardware,Medium,WiFi Access Point - Floor 4 Zone B,Floor 4,Network Team,10.0.4.14,AP2024014,Access Point
+AP-15-FL4,hardware,Medium,WiFi Access Point - Floor 4 Zone C,Floor 4,Network Team,10.0.4.15,AP2024015,Access Point
+AP-16-FL4,hardware,Medium,WiFi Access Point - Floor 4 Zone D,Floor 4,Network Team,10.0.4.16,AP2024016,Access Point
+AP-17-CONF,hardware,Medium,WiFi Access Point - Conference Room A,Conference Room A,Network Team,10.0.4.17,AP2024017,Access Point
+AP-18-CONF,hardware,Medium,WiFi Access Point - Conference Room B,Conference Room B,Network Team,10.0.4.18,AP2024018,Access Point
+AP-19-CONF,hardware,Medium,WiFi Access Point - Board Room,Board Room,Network Team,10.0.4.19,AP2024019,Access Point
+AP-20-CAFE,hardware,Low,WiFi Access Point - Cafeteria,Cafeteria,Network Team,10.0.4.20,AP2024020,Access Point

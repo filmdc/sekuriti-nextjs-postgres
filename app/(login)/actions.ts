@@ -97,8 +97,12 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
     return createCheckoutSession({ team: foundTeam, priceId });
   }
 
-  // Always redirect to regular dashboard - users can navigate to system-admin if they have access
-  redirect('/dashboard');
+  // Check if user is system admin and redirect appropriately
+  if (foundUser.isSystemAdmin) {
+    redirect('/admin');
+  } else {
+    redirect('/dashboard');
+  }
 });
 
 const signUpSchema = z.object({
