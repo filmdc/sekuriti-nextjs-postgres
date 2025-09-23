@@ -11,6 +11,9 @@ import {
   BarChart3,
   LogOut,
   Home,
+  FileText,
+  List,
+  Tags,
 } from 'lucide-react';
 
 export default async function AdminLayout({
@@ -82,6 +85,29 @@ export default async function AdminLayout({
                 <span className="ml-3">Settings</span>
               </div>
             </Link>
+
+            {/* Content Management Section */}
+            <div className="mt-6 pt-6 border-t border-gray-800">
+              <p className="px-4 pb-2 text-xs font-semibold text-gray-500 uppercase tracking-wider">Content Management</p>
+              <Link href="/admin/content/templates">
+                <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                  <FileText className="h-5 w-5" />
+                  <span className="ml-3">System Templates</span>
+                </div>
+              </Link>
+              <Link href="/admin/content/dropdowns">
+                <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                  <List className="h-5 w-5" />
+                  <span className="ml-3">Global Dropdowns</span>
+                </div>
+              </Link>
+              <Link href="/admin/content/tags">
+                <div className="flex items-center px-4 py-3 text-gray-300 hover:bg-gray-800 hover:text-white rounded-lg transition-colors cursor-pointer">
+                  <Tags className="h-5 w-5" />
+                  <span className="ml-3">Default Tags</span>
+                </div>
+              </Link>
+            </div>
           </nav>
 
           {/* Bottom Section */}
