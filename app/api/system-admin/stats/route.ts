@@ -30,7 +30,7 @@ export const GET = withSystemAdmin(async (
     const [userStats] = await db
       .select({
         total: sql<number>`COUNT(*)`,
-        verified: sql<number>`COUNT(CASE WHEN ${users.emailVerified} = true THEN 1 END)`,
+        verified: sql<number>`COUNT(CASE WHEN ${users.lastLoginAt} IS NOT NULL THEN 1 END)`,
         systemAdmins: sql<number>`COUNT(CASE WHEN ${users.isSystemAdmin} = true THEN 1 END)`,
         newThisMonth: sql<number>`COUNT(CASE WHEN ${users.createdAt} >= '${startOfMonth.toISOString()}' THEN 1 END)`,
       })

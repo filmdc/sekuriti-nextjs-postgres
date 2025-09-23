@@ -54,7 +54,7 @@ interface SystemAdmin {
   email: string;
   isSystemAdmin: boolean;
   isOrganizationAdmin: boolean;
-  emailVerified: boolean;
+  hasLoggedIn: boolean;
   createdAt: string;
   lastLoginAt: string | null;
   organizations: {
@@ -273,7 +273,7 @@ export default function SystemAdminsPage() {
               <div>
                 <p className="text-sm font-medium text-gray-600">Verified</p>
                 <p className="text-2xl font-bold text-gray-900">
-                  {admins.filter(a => a.emailVerified).length} / {admins.length}
+                  {admins.filter(a => a.hasLoggedIn).length} / {admins.length}
                 </p>
               </div>
               <CheckCircle className="h-8 w-8 text-blue-500" />
@@ -345,7 +345,7 @@ export default function SystemAdminsPage() {
                 </TableCell>
                 <TableCell>
                   <div className="flex items-center gap-2">
-                    {admin.emailVerified ? (
+                    {admin.hasLoggedIn ? (
                       <Badge variant="success" size="sm">
                         <Mail className="h-3 w-3 mr-1" />
                         Verified

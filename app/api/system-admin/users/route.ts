@@ -19,7 +19,7 @@ export const GET = withSystemAdmin(async (
         role: users.role,
         isSystemAdmin: users.isSystemAdmin,
         isOrganizationAdmin: users.isOrganizationAdmin,
-        emailVerified: users.emailVerified,
+        hasLoggedIn: sql<boolean>`${users.lastLoginAt} IS NOT NULL`,
         createdAt: users.createdAt,
         lastLoginAt: users.lastLoginAt,
       })

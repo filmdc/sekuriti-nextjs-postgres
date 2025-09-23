@@ -28,7 +28,7 @@ export const GET = withSystemAdmin(async (
     const [userStats] = await db
       .select({
         total: sql<number>`COUNT(DISTINCT ${users.id})`,
-        verified: sql<number>`COUNT(DISTINCT CASE WHEN ${users.emailVerified} = true THEN ${users.id} END)`,
+        verified: sql<number>`COUNT(DISTINCT CASE WHEN ${users.lastLoginAt} IS NOT NULL THEN ${users.id} END)`,
         systemAdmins: sql<number>`COUNT(DISTINCT CASE WHEN ${users.isSystemAdmin} = true THEN ${users.id} END)`,
         newThisWeek: sql<number>`COUNT(DISTINCT CASE WHEN ${users.createdAt} >= '${sevenDaysAgo.toISOString()}' THEN ${users.id} END)`,
       })

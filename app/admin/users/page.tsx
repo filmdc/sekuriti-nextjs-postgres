@@ -63,7 +63,7 @@ interface User {
   role: string;
   isSystemAdmin: boolean;
   isOrganizationAdmin: boolean;
-  emailVerified: boolean;
+  hasLoggedIn: boolean;
   createdAt: string;
   lastLoginAt: string | null;
   organizations: {
@@ -203,7 +203,7 @@ export default function UsersPage() {
     const total = users.length;
     const systemAdmins = users.filter(u => u.isSystemAdmin).length;
     const orgAdmins = users.filter(u => u.isOrganizationAdmin).length;
-    const verified = users.filter(u => u.emailVerified).length;
+    const verified = users.filter(u => u.hasLoggedIn).length;
 
     return { total, systemAdmins, orgAdmins, verified };
   };
@@ -243,10 +243,12 @@ export default function UsersPage() {
                 Activity Logs
               </Button>
             </Link>
-            <Button>
-              <UserPlus className="h-4 w-4 mr-2" />
-              Invite User
-            </Button>
+            <Link href="/admin/users/new">
+              <Button>
+                <UserPlus className="h-4 w-4 mr-2" />
+                Create User
+              </Button>
+            </Link>
           </div>
         </div>
 
@@ -282,7 +284,7 @@ export default function UsersPage() {
           <div className="bg-white rounded-lg border p-4">
             <div className="flex items-center justify-between">
               <div>
-                <p className="text-sm font-medium text-gray-600">Verified</p>
+                <p className="text-sm font-medium text-gray-600">Active Users</p>
                 <p className="text-2xl font-bold text-gray-900">{stats.verified}</p>
               </div>
               <UserCheck className="h-8 w-8 text-green-500" />
@@ -352,8 +354,8 @@ export default function UsersPage() {
                   <div>
                     <div className="flex items-center gap-2">
                       <p className="font-medium">{user.name}</p>
-                      {!user.emailVerified && (
-                        <Badge variant="warning" size="sm">Unverified</Badge>
+                      {!user.hasLoggedIn && (
+                        <Badge variant="warning" size="sm">Never Logged In</Badge>
                       )}
                     </div>
                     <p className="text-sm text-gray-500">{user.email}</p>
