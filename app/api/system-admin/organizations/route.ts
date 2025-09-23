@@ -26,19 +26,19 @@ export const GET = withSystemAdmin(async (req: NextRequest, context: any) => {
         website: teams.website,
         // Get counts via subqueries
         userCount: sql<number>`(
-          SELECT COUNT(*) FROM team_members
+          SELECT COALESCE(COUNT(*), 0) FROM team_members
           WHERE team_id = teams.id
         )`,
         usedLicenses: sql<number>`(
-          SELECT COUNT(DISTINCT user_id) FROM team_members
+          SELECT COALESCE(COUNT(DISTINCT user_id), 0) FROM team_members
           WHERE team_id = teams.id
         )`,
         incidentCount: sql<number>`(
-          SELECT COUNT(*) FROM incidents
+          SELECT COALESCE(COUNT(*), 0) FROM incidents
           WHERE organization_id = teams.id
         )`,
         assetCount: sql<number>`(
-          SELECT COUNT(*) FROM assets
+          SELECT COALESCE(COUNT(*), 0) FROM assets
           WHERE organization_id = teams.id AND deleted_at IS NULL
         )`,
       })

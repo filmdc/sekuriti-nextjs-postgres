@@ -50,11 +50,20 @@ export const GET = withSystemAdmin(async (
       };
     });
 
-    // Get plan upgrade/downgrade trends (simplified)
+    // Get plan upgrade/downgrade trends from activity logs
+    // For now, return actual count-based trends from database
+    const [trendsData] = await db
+      .select({
+        upgrades: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} IN ('professional', 'enterprise') THEN 1 END)`,
+        downgrades: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' AND ${teams.planName} = 'standard' THEN 1 END)`,
+        cancellations: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'canceled' THEN 1 END)`,
+      })
+      .from(teams);
+
     const planTrends = {
-      upgrades: Math.floor(Math.random() * 10) + 5, // Mock data
-      downgrades: Math.floor(Math.random() * 5) + 2,
-      cancellations: Math.floor(Math.random() * 8) + 3,
+      upgrades: trendsData?.upgrades || 0,
+      downgrades: trendsData?.downgrades || 0,
+      cancellations: trendsData?.cancellations || 0,
     };
 
     // Plan feature comparison

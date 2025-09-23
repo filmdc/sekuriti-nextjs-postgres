@@ -43,8 +43,8 @@ export const GET = withSystemAdmin(async (
           ...user,
           organizations: memberships.map(m => ({
             id: m.organizationId,
-            name: m.organizationName,
-            role: m.role,
+            name: m.organizationName || 'Unknown Organization',
+            role: m.role || 'member',
           })),
         };
       })

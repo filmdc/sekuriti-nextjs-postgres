@@ -58,7 +58,7 @@ import { toast } from '@/components/ui/use-toast';
 
 interface User {
   id: number;
-  name: string;
+  name: string | null;
   email: string;
   role: string;
   isSystemAdmin: boolean;
@@ -178,7 +178,7 @@ export default function UsersPage() {
 
   const filteredUsers = users.filter(user => {
     const matchesSearch =
-      user.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (user.name?.toLowerCase() || '').includes(searchQuery.toLowerCase()) ||
       user.email.toLowerCase().includes(searchQuery.toLowerCase()) ||
       user.organizations.some(org =>
         org.name.toLowerCase().includes(searchQuery.toLowerCase())
@@ -353,7 +353,7 @@ export default function UsersPage() {
                 <TableCell>
                   <div>
                     <div className="flex items-center gap-2">
-                      <p className="font-medium">{user.name}</p>
+                      <p className="font-medium">{user.name || 'Unknown User'}</p>
                       {!user.hasLoggedIn && (
                         <Badge variant="warning" size="sm">Never Logged In</Badge>
                       )}

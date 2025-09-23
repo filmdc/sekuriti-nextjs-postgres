@@ -213,8 +213,12 @@ async function DELETE(
   }
 }
 
+const ProtectedGET = withSystemAdmin(GET);
+const ProtectedPUT = withSystemAdmin(PUT);
+const ProtectedDELETE = withSystemAdmin(DELETE);
+
 export {
-  withSystemAdmin(GET) as GET,
-  withSystemAdmin(PUT) as PUT,
-  withSystemAdmin(DELETE) as DELETE,
+  ProtectedGET as GET,
+  ProtectedPUT as PUT,
+  ProtectedDELETE as DELETE,
 };

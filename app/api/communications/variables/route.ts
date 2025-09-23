@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { db } from '@/lib/db';
-import { incidents, teams, users } from '@/lib/db/schema';
+import { teams, users } from '@/lib/db/schema';
+import { incidents } from '@/lib/db/schema-ir';
 import { eq } from 'drizzle-orm';
 import { getUser } from '@/lib/db/queries';
 
