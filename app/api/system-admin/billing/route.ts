@@ -2,7 +2,15 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withSystemAdmin } from '@/lib/auth/system-admin';
 import { db } from '@/lib/db/drizzle';
 import { teams, users } from '@/lib/db/schema';
-import { sql, eq, and, gte, desc } from 'drizzle-orm';
+import {
+  subscriptionPlans,
+  subscriptions,
+  invoices,
+  paymentMethods,
+  billingEvents,
+  usageMetrics
+} from '@/lib/db/schema-billing';
+import { sql, eq, and, gte, desc, lte, ne, inArray } from 'drizzle-orm';
 
 // GET /api/system-admin/billing - Get billing overview
 export const GET = withSystemAdmin(async (
@@ -13,127 +21,181 @@ export const GET = withSystemAdmin(async (
     // Get date ranges
     const now = new Date();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
     const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const sixMonthsAgo = new Date(now.getFullYear(), now.getMonth() - 6, 1);
+
+    // Get all active subscriptions with plan details
+    const activeSubscriptionsData = await db
+      .select({
+        subscription: subscriptions,
+        plan: subscriptionPlans,
+        team: teams,
+      })
+      .from(subscriptions)
+      .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+      .leftJoin(teams, eq(subscriptions.organizationId, teams.id))
+      .where(eq(subscriptions.status, 'active'));
 
     // Get subscription statistics
     const [subscriptionStats] = await db
       .select({
-        totalRevenue: sql<number>`COALESCE(SUM(CASE WHEN ${teams.subscriptionStatus} = 'active' THEN 
-          CASE 
-            WHEN ${teams.planName} = 'enterprise' THEN 299
-            WHEN ${teams.planName} = 'professional' THEN 99
-            WHEN ${teams.planName} = 'standard' THEN 29
-            ELSE 0
-          END
-        END), 0) * 12`, // Annual revenue estimate
-        activeSubscriptions: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' THEN 1 END)`,
-        trialSubscriptions: sql<number>`COUNT(CASE WHEN ${teams.status} = 'trial' THEN 1 END)`,
-        canceledSubscriptions: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'canceled' THEN 1 END)`,
-        pastDueSubscriptions: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'past_due' THEN 1 END)`,
+        totalActive: sql<number>`CAST(COUNT(CASE WHEN ${subscriptions.status} = 'active' THEN 1 END) AS INTEGER)`,
+        totalTrialing: sql<number>`CAST(COUNT(CASE WHEN ${subscriptions.status} = 'trialing' THEN 1 END) AS INTEGER)`,
+        totalCanceled: sql<number>`CAST(COUNT(CASE WHEN ${subscriptions.status} = 'canceled' THEN 1 END) AS INTEGER)`,
+        totalPastDue: sql<number>`CAST(COUNT(CASE WHEN ${subscriptions.status} = 'past_due' THEN 1 END) AS INTEGER)`,
       })
-      .from(teams);
+      .from(subscriptions);
+
+    // Calculate MRR from active subscriptions
+    const mrr = activeSubscriptionsData.reduce((total, item) => {
+      if (item.plan) {
+        const amount = item.subscription.billingInterval === 'monthly'
+          ? parseFloat(item.plan.monthlyPrice)
+          : parseFloat(item.plan.yearlyPrice) / 12;
+        return total + amount;
+      }
+      return total;
+    }, 0);
 
     // Get revenue by plan
-    const revenueByPlan = await db
+    const revenueByPlanData = await db
       .select({
-        plan: teams.planName,
-        count: sql<number>`COUNT(*)`,
-        revenue: sql<number>`COUNT(*) * CASE 
-          WHEN ${teams.planName} = 'enterprise' THEN 299
-          WHEN ${teams.planName} = 'professional' THEN 99
-          WHEN ${teams.planName} = 'standard' THEN 29
-          ELSE 0
-        END`,
+        planName: subscriptionPlans.name,
+        planType: subscriptionPlans.type,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+        monthlyRevenue: sql<number>`
+          CAST(SUM(
+            CASE
+              WHEN ${subscriptions.billingInterval} = 'monthly' THEN ${subscriptionPlans.monthlyPrice}
+              ELSE ${subscriptionPlans.yearlyPrice} / 12
+            END
+          ) AS DECIMAL(10,2))`,
       })
-      .from(teams)
-      .where(eq(teams.subscriptionStatus, 'active'))
-      .groupBy(teams.planName);
+      .from(subscriptions)
+      .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+      .where(eq(subscriptions.status, 'active'))
+      .groupBy(subscriptionPlans.id, subscriptionPlans.name, subscriptionPlans.type);
 
-    // Get recent organizations for "transactions"
-    const recentTransactions = await db
+    // Get recent invoices
+    const recentInvoices = await db
       .select({
-        id: teams.id,
-        name: teams.name,
-        planName: teams.planName,
-        subscriptionStatus: teams.subscriptionStatus,
-        createdAt: teams.createdAt,
-        updatedAt: teams.updatedAt,
+        invoice: invoices,
+        team: teams,
+        subscription: subscriptions,
       })
-      .from(teams)
-      .where(eq(teams.subscriptionStatus, 'active'))
-      .orderBy(desc(teams.updatedAt))
+      .from(invoices)
+      .leftJoin(subscriptions, eq(invoices.subscriptionId, subscriptions.id))
+      .leftJoin(teams, eq(subscriptions.organizationId, teams.id))
+      .orderBy(desc(invoices.createdAt))
       .limit(10);
+
+    // Get billing events for the current month
+    const monthlyEvents = await db
+      .select({
+        eventType: billingEvents.eventType,
+        count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
+      })
+      .from(billingEvents)
+      .where(
+        and(
+          gte(billingEvents.createdAt, startOfMonth),
+          lte(billingEvents.createdAt, endOfMonth)
+        )
+      )
+      .groupBy(billingEvents.eventType);
 
     // Generate revenue history for past 6 months
     const revenueHistory = [];
     for (let i = 5; i >= 0; i--) {
-      const date = new Date(now.getFullYear(), now.getMonth() - i, 1);
-      const monthName = date.toLocaleDateString('en-US', { month: 'short' });
-      
+      const monthStart = new Date(now.getFullYear(), now.getMonth() - i, 1);
+      const monthEnd = new Date(now.getFullYear(), now.getMonth() - i + 1, 0);
+      const monthName = monthStart.toLocaleDateString('en-US', { month: 'short' });
+
       const [monthData] = await db
         .select({
-          subscriptions: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' THEN 1 END)`,
-          revenue: sql<number>`COUNT(CASE WHEN ${teams.subscriptionStatus} = 'active' THEN 1 END) * 
-            CASE 
-              WHEN ${teams.planName} = 'enterprise' THEN 299
-              WHEN ${teams.planName} = 'professional' THEN 99
-              WHEN ${teams.planName} = 'standard' THEN 29
-              ELSE 0
-            END`,
+          revenue: sql<number>`
+            CAST(COALESCE(SUM(${invoices.amount}), 0) AS DECIMAL(10,2))`,
+          invoiceCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
         })
-        .from(teams)
-        .where(and(
-          eq(teams.subscriptionStatus, 'active'),
-          gte(teams.createdAt, date)
-        ));
+        .from(invoices)
+        .where(
+          and(
+            eq(invoices.status, 'succeeded'),
+            gte(invoices.createdAt, monthStart),
+            lte(invoices.createdAt, monthEnd)
+          )
+        );
 
       revenueHistory.push({
         month: monthName,
-        revenue: monthData?.revenue || 0,
-        subscriptions: monthData?.subscriptions || 0,
+        revenue: parseFloat(monthData?.revenue || '0'),
+        subscriptions: monthData?.invoiceCount || 0,
       });
     }
 
     // Calculate growth metrics
     const currentMonthRevenue = revenueHistory[revenueHistory.length - 1]?.revenue || 0;
     const lastMonthRevenue = revenueHistory[revenueHistory.length - 2]?.revenue || 0;
-    const growthRate = lastMonthRevenue > 0 
+    const growthRate = lastMonthRevenue > 0
       ? ((currentMonthRevenue - lastMonthRevenue) / lastMonthRevenue) * 100
       : 0;
 
-    // Calculate churn rate (simplified)
-    const churnRate = subscriptionStats?.canceledSubscriptions > 0 
-      ? (subscriptionStats.canceledSubscriptions / (subscriptionStats.activeSubscriptions + subscriptionStats.canceledSubscriptions)) * 100
+    // Calculate churn rate
+    const totalSubscriptions = (subscriptionStats?.totalActive || 0) + (subscriptionStats?.totalCanceled || 0);
+    const churnRate = totalSubscriptions > 0
+      ? (subscriptionStats?.totalCanceled / totalSubscriptions) * 100
       : 0;
 
+    // Get usage metrics for current month
+    const [currentMonthUsage] = await db
+      .select({
+        totalApiCalls: sql<number>`CAST(SUM(${usageMetrics.value}) AS INTEGER)`,
+        uniqueTeams: sql<number>`CAST(COUNT(DISTINCT ${usageMetrics.organizationId}) AS INTEGER)`,
+      })
+      .from(usageMetrics)
+      .where(
+        and(
+          eq(usageMetrics.metricType, 'api_calls'),
+          gte(usageMetrics.recordedAt, startOfMonth)
+        )
+      );
+
     const response = {
-      totalRevenue: subscriptionStats?.totalRevenue || 0,
-      activeSubscriptions: subscriptionStats?.activeSubscriptions || 0,
+      totalRevenue: Math.round(mrr * 12), // ARR
+      activeSubscriptions: subscriptionStats?.totalActive || 0,
       churnRate: Math.round(churnRate * 100) / 100,
       growthRate: Math.round(growthRate * 100) / 100,
-      revenueByPlan: revenueByPlan.map(plan => ({
-        plan: plan.plan || 'unknown',
-        revenue: plan.revenue || 0,
+      mrr: Math.round(mrr),
+      revenueByPlan: revenueByPlanData.map(plan => ({
+        plan: plan.planName || 'Unknown',
+        type: plan.planType || 'standard',
+        revenue: parseFloat(plan.monthlyRevenue || '0'),
         count: plan.count || 0,
       })),
       revenueHistory,
       subscriptionStatus: [
-        { status: 'Active', count: subscriptionStats?.activeSubscriptions || 0, color: '#10b981' },
-        { status: 'Trialing', count: subscriptionStats?.trialSubscriptions || 0, color: '#3b82f6' },
-        { status: 'Past Due', count: subscriptionStats?.pastDueSubscriptions || 0, color: '#f59e0b' },
-        { status: 'Canceled', count: subscriptionStats?.canceledSubscriptions || 0, color: '#ef4444' },
+        { status: 'Active', count: subscriptionStats?.totalActive || 0, color: '#10b981' },
+        { status: 'Trialing', count: subscriptionStats?.totalTrialing || 0, color: '#3b82f6' },
+        { status: 'Past Due', count: subscriptionStats?.totalPastDue || 0, color: '#f59e0b' },
+        { status: 'Canceled', count: subscriptionStats?.totalCanceled || 0, color: '#ef4444' },
       ],
-      recentTransactions: recentTransactions.map(team => ({
-        id: `inv_${team.id}_${new Date().getFullYear()}`,
-        organization: team.name,
-        amount: team.planName === 'enterprise' ? 299 
-               : team.planName === 'professional' ? 99 
-               : team.planName === 'standard' ? 29 : 0,
-        status: team.subscriptionStatus === 'active' ? 'paid' : 'pending',
-        date: team.updatedAt?.toISOString().split('T')[0] || new Date().toISOString().split('T')[0],
-        plan: team.planName || 'standard',
+      recentTransactions: recentInvoices.map(item => ({
+        id: item.invoice.invoiceNumber || `inv_${item.invoice.id}`,
+        organization: item.team?.name || 'Unknown',
+        amount: parseFloat(item.invoice.amount),
+        status: item.invoice.status,
+        date: item.invoice.createdAt.toISOString().split('T')[0],
+        plan: item.subscription?.planId ? `Plan ${item.subscription.planId}` : 'Unknown',
       })),
+      billingEvents: monthlyEvents.reduce((acc, event) => {
+        acc[event.eventType] = event.count;
+        return acc;
+      }, {} as Record<string, number>),
+      usage: {
+        apiCalls: currentMonthUsage?.totalApiCalls || 0,
+        activeTeams: currentMonthUsage?.uniqueTeams || 0,
+      }
     };
 
     return NextResponse.json(response);
