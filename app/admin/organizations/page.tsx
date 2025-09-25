@@ -23,15 +23,13 @@ type Organization = {
   id: number;
   name: string;
   status: string;
-  licenseType: string;
-  licenseCount: number;
+  planName: string | null;
+  maxUsers: number | null;
   userCount: number;
-  usedLicenses: number;
   incidentCount: number;
   assetCount: number;
   createdAt: string;
   updatedAt: string;
-  expiresAt: string | null;
   trialEndsAt: string | null;
   industry: string | null;
   size: string | null;
@@ -96,15 +94,29 @@ export default function OrganizationsPage() {
     return <Badge variant={variants[status] || 'outline'}>{status}</Badge>;
   };
 
-  const getLicenseBadge = (type: string) => {
+  const getPlanBadge = (planName: string | null) => {
+    if (!planName) {
+      return (
+        <span className="px-2 py-1 rounded text-xs font-medium bg-gray-100 text-gray-800">
+          No Plan
+        </span>
+      );
+    }
+
     const colors: { [key: string]: string } = {
-      enterprise: 'bg-purple-100 text-purple-800',
-      professional: 'bg-blue-100 text-blue-800',
-      standard: 'bg-gray-100 text-gray-800',
+      'Enterprise': 'bg-purple-100 text-purple-800',
+      'Professional': 'bg-blue-100 text-blue-800',
+      'Standard': 'bg-gray-100 text-gray-800',
+      'Free': 'bg-green-100 text-green-800',
     };
+
+    const colorClass = Object.keys(colors).find(key =>
+      planName.toLowerCase().includes(key.toLowerCase())
+    );
+
     return (
-      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[type] || colors.standard}`}>
-        {type.charAt(0).toUpperCase() + type.slice(1)}
+      <span className={`px-2 py-1 rounded text-xs font-medium ${colors[colorClass || 'Standard']}`}>
+        {planName}
       </span>
     );
   };
@@ -136,7 +148,7 @@ export default function OrganizationsPage() {
           <div>
             <h1 className="text-3xl font-bold text-gray-900">Organizations</h1>
             <p className="text-gray-600 mt-2">
-              Manage all organizations and their licenses
+              Manage all organizations and their subscription plans
             </p>
           </div>
           <div className="flex gap-3">
@@ -208,7 +220,7 @@ export default function OrganizationsPage() {
                   Organization
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
-                  License
+                  Plan
                 </th>
                 <th className="px-6 py-4 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
                   Usage
@@ -252,10 +264,12 @@ export default function OrganizationsPage() {
                     </td>
                     <td className="px-6 py-4">
                       <div>
-                        {getLicenseBadge(org.licenseType)}
-                        <p className="text-sm text-gray-500 mt-1">
-                          {org.usedLicenses} / {org.licenseCount} licenses
-                        </p>
+                        {getPlanBadge(org.planName)}
+                        {org.maxUsers && (
+                          <p className="text-sm text-gray-500 mt-1">
+                            {org.userCount} / {org.maxUsers} users
+                          </p>
+                        )}
                       </div>
                     </td>
                     <td className="px-6 py-4">
