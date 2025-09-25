@@ -55,6 +55,8 @@ import {
   AlertCircle,
   Mail,
   Undo,
+  Plus,
+  Trash2,
 } from 'lucide-react';
 import { format } from 'date-fns';
 
@@ -103,12 +105,26 @@ export default function InvoicesPage() {
   const [selectedInvoice, setSelectedInvoice] = useState<Invoice | null>(null);
   const [showVoidDialog, setShowVoidDialog] = useState(false);
   const [showResendDialog, setShowResendDialog] = useState(false);
+  const [showCreateDialog, setShowCreateDialog] = useState(false);
   const [voidReason, setVoidReason] = useState('');
   const [resendEmail, setResendEmail] = useState('');
+
+  // State for create invoice form
+  const [createForm, setCreateForm] = useState({
+    organizationId: '',
+    lineItems: [{ description: '', amount: 0, quantity: 1 }],
+    dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0], // 30 days from now
+    notes: '',
+  });
 
   // Fetch invoices data
   const { data, isLoading, mutate, error } = useAdminAPI<InvoicesData>(
     `/api/system-admin/billing/invoices?page=${page}&status=${statusFilter}&search=${searchQuery}`
+  );
+
+  // Fetch organizations for the create form
+  const { data: orgsData } = useAdminAPI<{ organizations: { id: number; name: string; email: string }[] }>(
+    `/api/system-admin/organizations`
   );
 
   const handleVoidInvoice = async (invoiceId: number) => {
@@ -151,6 +167,68 @@ export default function InvoicesPage() {
     } catch (error) {
       console.error('Error refunding invoice:', error);
     }
+  };
+
+  const handleCreateInvoice = async () => {
+    try {
+      // Validate form
+      if (!createForm.organizationId) {
+        alert('Please select an organization');
+        return;
+      }
+
+      const validLineItems = createForm.lineItems.filter(item =>
+        item.description && item.amount > 0
+      );
+
+      if (validLineItems.length === 0) {
+        alert('Please add at least one line item');
+        return;
+      }
+
+      await adminAPI('/api/system-admin/billing/invoices', {
+        method: 'POST',
+        body: {
+          organizationId: parseInt(createForm.organizationId),
+          lineItems: validLineItems,
+          dueDate: createForm.dueDate,
+          notes: createForm.notes,
+        },
+        successMessage: 'Invoice created successfully',
+      });
+
+      // Reset form and close dialog
+      setShowCreateDialog(false);
+      setCreateForm({
+        organizationId: '',
+        lineItems: [{ description: '', amount: 0, quantity: 1 }],
+        dueDate: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
+        notes: '',
+      });
+      mutate();
+    } catch (error) {
+      console.error('Error creating invoice:', error);
+    }
+  };
+
+  const handleAddLineItem = () => {
+    setCreateForm({
+      ...createForm,
+      lineItems: [...createForm.lineItems, { description: '', amount: 0, quantity: 1 }],
+    });
+  };
+
+  const handleRemoveLineItem = (index: number) => {
+    setCreateForm({
+      ...createForm,
+      lineItems: createForm.lineItems.filter((_, i) => i !== index),
+    });
+  };
+
+  const handleUpdateLineItem = (index: number, field: string, value: any) => {
+    const updatedItems = [...createForm.lineItems];
+    updatedItems[index] = { ...updatedItems[index], [field]: value };
+    setCreateForm({ ...createForm, lineItems: updatedItems });
   };
 
   const handleDownloadInvoice = async (invoice: Invoice) => {
@@ -267,14 +345,23 @@ export default function InvoicesPage() {
             Manage and track all organization invoices
           </p>
         </div>
-        <Button
-          onClick={() => mutate()}
-          variant="outline"
-          disabled={isLoading}
-        >
-          <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex gap-3">
+          <Button
+            onClick={() => setShowCreateDialog(true)}
+            className="bg-red-600 hover:bg-red-700 text-white"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Create Invoice
+          </Button>
+          <Button
+            onClick={() => mutate()}
+            variant="outline"
+            disabled={isLoading}
+          >
+            <RefreshCw className={`h-4 w-4 mr-2 ${isLoading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -662,6 +749,162 @@ export default function InvoicesPage() {
           </DialogContent>
         </Dialog>
       )}
+
+      {/* Create Invoice Dialog */}
+      <Dialog open={showCreateDialog} onOpenChange={setShowCreateDialog}>
+        <DialogContent className="max-w-2xl max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Create Manual Invoice</DialogTitle>
+            <DialogDescription>
+              Create an invoice for organizations that need special billing arrangements or cannot pay through Stripe.
+            </DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 mt-4">
+            {/* Organization Selector */}
+            <div>
+              <Label htmlFor="organization">Organization *</Label>
+              <Select
+                value={createForm.organizationId}
+                onValueChange={(value) => setCreateForm({ ...createForm, organizationId: value })}
+              >
+                <SelectTrigger id="organization">
+                  <SelectValue placeholder="Select an organization" />
+                </SelectTrigger>
+                <SelectContent>
+                  {orgsData?.organizations.map((org) => (
+                    <SelectItem key={org.id} value={org.id.toString()}>
+                      {org.name} ({org.email})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Due Date */}
+            <div>
+              <Label htmlFor="dueDate">Due Date *</Label>
+              <Input
+                id="dueDate"
+                type="date"
+                value={createForm.dueDate}
+                onChange={(e) => setCreateForm({ ...createForm, dueDate: e.target.value })}
+              />
+            </div>
+
+            {/* Line Items */}
+            <div>
+              <div className="flex justify-between items-center mb-2">
+                <Label>Line Items *</Label>
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="sm"
+                  onClick={handleAddLineItem}
+                >
+                  <Plus className="h-4 w-4 mr-1" />
+                  Add Item
+                </Button>
+              </div>
+
+              <div className="space-y-2">
+                {createForm.lineItems.map((item, index) => (
+                  <div key={index} className="flex gap-2 items-start">
+                    <div className="flex-1">
+                      <Input
+                        placeholder="Description"
+                        value={item.description}
+                        onChange={(e) => handleUpdateLineItem(index, 'description', e.target.value)}
+                      />
+                    </div>
+                    <div className="w-24">
+                      <Input
+                        type="number"
+                        placeholder="Amount"
+                        value={item.amount}
+                        onChange={(e) => handleUpdateLineItem(index, 'amount', parseFloat(e.target.value) || 0)}
+                      />
+                    </div>
+                    <div className="w-20">
+                      <Input
+                        type="number"
+                        placeholder="Qty"
+                        value={item.quantity}
+                        onChange={(e) => handleUpdateLineItem(index, 'quantity', parseInt(e.target.value) || 1)}
+                      />
+                    </div>
+                    <Button
+                      type="button"
+                      variant="ghost"
+                      size="icon"
+                      onClick={() => handleRemoveLineItem(index)}
+                      disabled={createForm.lineItems.length === 1}
+                    >
+                      <Trash2 className="h-4 w-4" />
+                    </Button>
+                  </div>
+                ))}
+              </div>
+
+              {/* Total */}
+              <div className="mt-3 p-3 bg-gray-50 rounded-lg">
+                <div className="flex justify-between font-medium">
+                  <span>Subtotal:</span>
+                  <span>
+                    {formatCurrency(
+                      createForm.lineItems.reduce((sum, item) => sum + (item.amount * item.quantity), 0)
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm text-gray-600">
+                  <span>Tax (10%):</span>
+                  <span>
+                    {formatCurrency(
+                      createForm.lineItems.reduce((sum, item) => sum + (item.amount * item.quantity), 0) * 0.1
+                    )}
+                  </span>
+                </div>
+                <div className="flex justify-between font-bold pt-2 border-t">
+                  <span>Total:</span>
+                  <span>
+                    {formatCurrency(
+                      createForm.lineItems.reduce((sum, item) => sum + (item.amount * item.quantity), 0) * 1.1
+                    )}
+                  </span>
+                </div>
+              </div>
+            </div>
+
+            {/* Notes */}
+            <div>
+              <Label htmlFor="notes">Notes (optional)</Label>
+              <Input
+                id="notes"
+                placeholder="Additional information or payment instructions"
+                value={createForm.notes}
+                onChange={(e) => setCreateForm({ ...createForm, notes: e.target.value })}
+              />
+            </div>
+
+            {/* Actions */}
+            <div className="flex justify-end gap-3 pt-4">
+              <Button
+                variant="outline"
+                onClick={() => setShowCreateDialog(false)}
+              >
+                Cancel
+              </Button>
+              <Button
+                onClick={handleCreateInvoice}
+                className="bg-red-600 hover:bg-red-700 text-white"
+              >
+                <FileText className="h-4 w-4 mr-2" />
+                Create Invoice
+              </Button>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
