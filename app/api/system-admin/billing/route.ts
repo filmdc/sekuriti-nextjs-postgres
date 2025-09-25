@@ -65,12 +65,12 @@ export const GET = withSystemAdmin(async (
         planType: subscriptionPlans.type,
         count: sql<number>`CAST(COUNT(*) AS INTEGER)`,
         monthlyRevenue: sql<number>`
-          CAST(SUM(
+          CAST(COALESCE(SUM(
             CASE
-              WHEN ${subscriptions.billingInterval} = 'monthly' THEN ${subscriptionPlans.monthlyPrice}
-              ELSE ${subscriptionPlans.yearlyPrice} / 12
+              WHEN subscriptions.billing_interval = 'monthly' THEN CAST(subscription_plans.monthly_price AS DECIMAL)
+              ELSE CAST(subscription_plans.yearly_price AS DECIMAL) / 12
             END
-          ) AS DECIMAL(10,2))`,
+          ), 0) AS DECIMAL(10,2))`,
       })
       .from(subscriptions)
       .leftJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
@@ -115,7 +115,7 @@ export const GET = withSystemAdmin(async (
       const [monthData] = await db
         .select({
           revenue: sql<number>`
-            CAST(COALESCE(SUM(${invoices.amount}), 0) AS DECIMAL(10,2))`,
+            CAST(COALESCE(SUM(total), 0) AS DECIMAL(10,2))`,
           invoiceCount: sql<number>`CAST(COUNT(*) AS INTEGER)`,
         })
         .from(invoices)
@@ -150,14 +150,14 @@ export const GET = withSystemAdmin(async (
     // Get usage metrics for current month
     const [currentMonthUsage] = await db
       .select({
-        totalApiCalls: sql<number>`CAST(SUM(${usageMetrics.value}) AS INTEGER)`,
-        uniqueTeams: sql<number>`CAST(COUNT(DISTINCT ${usageMetrics.organizationId}) AS INTEGER)`,
+        totalApiCalls: sql<number>`CAST(COALESCE(SUM(metric_value), 0) AS INTEGER)`,
+        uniqueTeams: sql<number>`CAST(COUNT(DISTINCT organization_id) AS INTEGER)`,
       })
       .from(usageMetrics)
       .where(
         and(
           eq(usageMetrics.metricType, 'api_calls'),
-          gte(usageMetrics.recordedAt, startOfMonth)
+          gte(usageMetrics.createdAt, startOfMonth)
         )
       );
 
@@ -183,7 +183,7 @@ export const GET = withSystemAdmin(async (
       recentTransactions: recentInvoices.map(item => ({
         id: item.invoice.invoiceNumber || `inv_${item.invoice.id}`,
         organization: item.team?.name || 'Unknown',
-        amount: parseFloat(item.invoice.amount),
+        amount: parseFloat(item.invoice.total),
         status: item.invoice.status,
         date: item.invoice.createdAt.toISOString().split('T')[0],
         plan: item.subscription?.planId ? `Plan ${item.subscription.planId}` : 'Unknown',

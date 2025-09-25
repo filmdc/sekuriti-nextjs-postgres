@@ -221,10 +221,9 @@ export async function seedBillingData() {
       await db.insert(billingEvents).values([
         {
           organizationId: team.id,
-          eventType: 'subscription_created' as const,
-          eventSource: 'system' as const,
-          description: `Subscription created for ${team.name}`,
-          metadata: { planId, status },
+          eventType: 'subscription_created',
+          eventSource: 'system',
+          data: { planId, status, teamName: team.name },
           createdAt: new Date(now.getFullYear(), now.getMonth() - 3, 15),
         },
       ]);
@@ -234,9 +233,13 @@ export async function seedBillingData() {
         const metricDate = new Date(now.getTime() - i * 24 * 60 * 60 * 1000);
         await db.insert(usageMetrics).values({
           organizationId: team.id,
-          metricType: 'api_calls' as const,
-          value: Math.floor(Math.random() * 1000) + 100,
-          recordedAt: metricDate,
+          metricType: 'api_calls',
+          metricValue: Math.floor(Math.random() * 1000) + 100,
+          metricUnit: 'count',
+          periodStart: metricDate,
+          periodEnd: metricDate,
+          isBillable: false,
+          createdAt: metricDate,
         });
       }
     }
@@ -247,25 +250,29 @@ export async function seedBillingData() {
     const discountsCreated = await db.insert(discounts).values([
       {
         code: 'LAUNCH20',
+        name: 'Launch Month Special',
         description: '20% off for launch month',
-        type: 'percentage' as const,
+        type: 'percentage',
         value: '20.00',
         maxUses: 100,
-        usedCount: 15,
+        currentUses: 15,
         validFrom: new Date(now.getFullYear(), now.getMonth(), 1),
         validUntil: new Date(now.getFullYear(), now.getMonth() + 1, 0),
         isActive: true,
+        createdBy: systemAdminId,
       },
       {
         code: 'SECURITY10',
+        name: 'Security Special',
         description: '$10 off monthly subscription',
-        type: 'fixed' as const,
+        type: 'fixed_amount',
         value: '10.00',
         maxUses: 50,
-        usedCount: 5,
+        currentUses: 5,
         validFrom: now,
         validUntil: new Date(now.getFullYear() + 1, now.getMonth(), now.getDate()),
         isActive: true,
+        createdBy: systemAdminId,
       },
     ]).returning();
 
@@ -286,9 +293,8 @@ export async function seedBillingData() {
         await db.insert(billingEvents).values({
           organizationId: team.id,
           eventType,
-          eventSource: 'stripe' as const,
-          description: `${eventType.replace(/_/g, ' ')} for ${team.name}`,
-          metadata: { teamName: team.name },
+          eventSource: 'stripe_webhook',
+          data: { teamName: team.name, event: eventType },
           createdAt: new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000),
         });
       }
