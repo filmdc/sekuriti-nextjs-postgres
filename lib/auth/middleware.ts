@@ -3,7 +3,6 @@ import { TeamDataWithMembers, User } from '@/lib/db/schema';
 import { getTeamForUser, getUser } from '@/lib/db/queries';
 import { redirect } from 'next/navigation';
 import { enforceQuota, updateResourceCount } from '@/lib/middleware/quota-enforcement';
-import { requireFeature } from '@/lib/auth/license-gating';
 import { ResourceType } from '@/lib/types/limits';
 import { FeatureName } from '@/lib/types/features';
 import { QuotaExceededError, FeatureNotAvailableError } from '@/lib/types/api-responses';
@@ -103,22 +102,7 @@ export function validatedActionWithUserAndTeam<S extends z.ZodType<any, any>, T>
         return { error: result.error.errors[0].message };
       }
 
-      // Check feature requirements first
-      if (options?.feature) {
-        try {
-          requireFeature(options.feature.feature, team, options.feature.upgradeUrl);
-        } catch (error) {
-          if (error instanceof FeatureNotAvailableError) {
-            return {
-              error: error.message,
-              upgradeUrl: error.upgradeUrl,
-              featureRequired: error.feature,
-              requiredLicense: error.requiredLicense
-            };
-          }
-          throw error;
-        }
-      }
+      // Feature checking removed - now handled by subscription plans
 
       // Check quota requirements before execution
       if (options?.quota) {

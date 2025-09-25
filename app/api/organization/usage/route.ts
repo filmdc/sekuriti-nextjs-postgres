@@ -1,8 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server';
 import { getUser, getTeamForUser } from '@/lib/db/queries';
 import { getCurrentUsage, getOrganizationLimits, getQuotaSummary } from '@/lib/middleware/quota-enforcement';
-import { getAvailableFeatures } from '@/lib/auth/license-gating';
 import { UsageResponse } from '@/lib/types/api-responses';
+import { db } from '@/lib/db/drizzle';
+import { subscriptions, subscriptionPlans } from '@/lib/db/schema-billing';
+import { eq, and } from 'drizzle-orm';
 
 export async function GET(request: NextRequest) {
   try {
@@ -19,8 +21,22 @@ export async function GET(request: NextRequest) {
     // Get quota summary which includes usage, limits, and percentages
     const summary = await getQuotaSummary(team.id);
 
-    // Get available features for this license
-    const features = getAvailableFeatures(team);
+    // Get available features from active subscription
+    const [activeSub] = await db
+      .select({
+        features: subscriptionPlans.features
+      })
+      .from(subscriptions)
+      .innerJoin(subscriptionPlans, eq(subscriptions.planId, subscriptionPlans.id))
+      .where(
+        and(
+          eq(subscriptions.organizationId, team.id),
+          eq(subscriptions.status, 'active')
+        )
+      )
+      .limit(1);
+
+    const features = activeSub?.features || {};
 
     const response: UsageResponse = {
       success: true,
