@@ -109,9 +109,16 @@ export async function seedBillingData() {
     const subscriptionsToCreate = [];
     const now = new Date();
 
+    // Check for existing subscriptions to avoid duplicates
+    const existingSubscriptions = await db
+      .select({ organizationId: subscriptions.organizationId })
+      .from(subscriptions);
+
+    const existingOrgIds = new Set(existingSubscriptions.map(s => s.organizationId));
+
     for (const team of allTeams) {
-      // Skip teams that might not need subscriptions
-      if (!team.id) continue;
+      // Skip teams that might not need subscriptions or already have one
+      if (!team.id || existingOrgIds.has(team.id)) continue;
 
       // Determine plan based on team's current plan name or status
       let planId = plans[0].id; // Default to Standard
@@ -162,33 +169,36 @@ export async function seedBillingData() {
           const amount = plan?.monthlyPrice || '29.00';
 
           await db.insert(invoices).values({
+            organizationId: team.id,
             subscriptionId: subscription[0].id,
             invoiceNumber: `INV-${team.id}-${invoiceDate.getFullYear()}${String(invoiceDate.getMonth() + 1).padStart(2, '0')}`,
-            amount: amount,
+            subtotal: amount,
+            total: amount,
             currency: 'usd',
             status: 'succeeded' as const,
+            issuedAt: invoiceDate,
             dueDate: new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), 10),
             paidAt: new Date(invoiceDate.getFullYear(), invoiceDate.getMonth(), 5),
             stripeInvoiceId: `in_test_${team.id}_${i}`,
-            billingPeriodStart: invoiceDate,
-            billingPeriodEnd: new Date(invoiceDate.getFullYear(), invoiceDate.getMonth() + 1, 0),
             createdAt: invoiceDate,
           });
         }
 
         // Create current month invoice (pending or succeeded)
         const currentInvoiceStatus = Math.random() > 0.5 ? 'succeeded' : 'pending';
+        const currentAmount = plans.find(p => p.id === planId)?.monthlyPrice || '29.00';
         await db.insert(invoices).values({
+          organizationId: team.id,
           subscriptionId: subscription[0].id,
           invoiceNumber: `INV-${team.id}-${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}`,
-          amount: plans.find(p => p.id === planId)?.monthlyPrice || '29.00',
+          subtotal: currentAmount,
+          total: currentAmount,
           currency: 'usd',
           status: currentInvoiceStatus as 'succeeded' | 'pending',
+          issuedAt: new Date(now.getFullYear(), now.getMonth(), 1),
           dueDate: new Date(now.getFullYear(), now.getMonth(), 10),
           paidAt: currentInvoiceStatus === 'succeeded' ? now : null,
           stripeInvoiceId: `in_test_${team.id}_current`,
-          billingPeriodStart: new Date(now.getFullYear(), now.getMonth(), 1),
-          billingPeriodEnd: new Date(now.getFullYear(), now.getMonth() + 1, 0),
         });
       }
 
@@ -196,13 +206,14 @@ export async function seedBillingData() {
       if (status === 'active' || status === 'trialing') {
         await db.insert(paymentMethods).values({
           organizationId: team.id,
-          type: 'card' as const,
+          type: 'card',
           last4: String(1000 + Math.floor(Math.random() * 9000)),
           brand: ['visa', 'mastercard', 'amex'][Math.floor(Math.random() * 3)],
-          expiryMonth: Math.floor(Math.random() * 12) + 1,
-          expiryYear: now.getFullYear() + Math.floor(Math.random() * 5) + 1,
+          expMonth: Math.floor(Math.random() * 12) + 1,
+          expYear: now.getFullYear() + Math.floor(Math.random() * 5) + 1,
           isDefault: true,
           stripePaymentMethodId: `pm_test_${team.id}`,
+          addedBy: systemAdminId,
         });
       }
 
@@ -211,6 +222,7 @@ export async function seedBillingData() {
         {
           organizationId: team.id,
           eventType: 'subscription_created' as const,
+          eventSource: 'system' as const,
           description: `Subscription created for ${team.name}`,
           metadata: { planId, status },
           createdAt: new Date(now.getFullYear(), now.getMonth() - 3, 15),
@@ -274,6 +286,7 @@ export async function seedBillingData() {
         await db.insert(billingEvents).values({
           organizationId: team.id,
           eventType,
+          eventSource: 'stripe' as const,
           description: `${eventType.replace(/_/g, ' ')} for ${team.name}`,
           metadata: { teamName: team.name },
           createdAt: new Date(now.getTime() - Math.random() * 7 * 24 * 60 * 60 * 1000),

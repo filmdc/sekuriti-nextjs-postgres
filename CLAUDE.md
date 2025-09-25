@@ -138,3 +138,4 @@ Required in `.env`:
 - **Form Enhancements**: Auto-save, validation, optimistic UI
 - **User Feedback**: Loading states, confirmations, progress tracking
 - **Visual Consistency**: Standardized spacing, typography, and status colors
+- ensure that front end development always basis interface off of the actual database, and that all fields and metrics and reports are tied to the actual database. do not create mock pages, fake data, or the like. all funcitons in this system are to relate to actual database data sources. if the database is lacking fields and tables that are needed, propose making database changes to the user before proceeding. 

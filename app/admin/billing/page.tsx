@@ -48,7 +48,8 @@ interface BillingOverview {
   activeSubscriptions: number;
   churnRate: number;
   growthRate: number;
-  revenueByPlan: { plan: string; revenue: number; count: number }[];
+  mrr: number;
+  revenueByPlan: { plan: string; type: string; revenue: number; count: number }[];
   revenueHistory: { month: string; revenue: number; subscriptions: number }[];
   subscriptionStatus: { status: string; count: number; color: string }[];
   recentTransactions: {
@@ -59,12 +60,17 @@ interface BillingOverview {
     date: string;
     plan: string;
   }[];
+  billingEvents?: Record<string, number>;
+  usage?: {
+    apiCalls: number;
+    activeTeams: number;
+  };
 }
 
 export default function BillingPage() {
-  // Fetch billing overview data
+  // Fetch billing overview data from real billing tables
   const { data: overview, isLoading: loading, mutate: refreshBilling } = useAdminAPI<BillingOverview>(
-    '/api/system-admin/billing/overview'
+    '/api/system-admin/billing'
   );
 
   const handleExportReports = async () => {
@@ -88,6 +94,7 @@ export default function BillingPage() {
 
   const getStatusIcon = (status: string) => {
     switch (status) {
+      case 'succeeded':
       case 'paid':
         return <CheckCircle className="h-4 w-4 text-green-500" />;
       case 'pending':
@@ -101,6 +108,7 @@ export default function BillingPage() {
 
   const getStatusColor = (status: string) => {
     switch (status) {
+      case 'succeeded':
       case 'paid':
         return 'text-green-600 bg-green-50';
       case 'pending':
@@ -201,7 +209,7 @@ export default function BillingPage() {
                   {overview?.activeSubscriptions || 0}
                 </p>
                 <p className="text-sm text-blue-600 mt-1">
-                  23 trials in progress
+                  {overview?.subscriptionStatus?.find(s => s.status === 'Trialing')?.count || 0} trials in progress
                 </p>
               </div>
               <div className="h-12 w-12 bg-blue-100 rounded-lg flex items-center justify-center">
@@ -220,7 +228,7 @@ export default function BillingPage() {
                   {overview?.churnRate || 0}%
                 </p>
                 <p className="text-sm text-red-600 mt-1">
-                  12 cancellations
+                  {overview?.subscriptionStatus?.find(s => s.status === 'Canceled')?.count || 0} cancellations
                 </p>
               </div>
               <div className="h-12 w-12 bg-red-100 rounded-lg flex items-center justify-center">
@@ -239,7 +247,7 @@ export default function BillingPage() {
                   +{overview?.growthRate || 0}%
                 </p>
                 <p className="text-sm text-green-600 mt-1">
-                  42 new subscriptions
+                  MRR: {formatCurrency(overview?.mrr || 0)}/mo
                 </p>
               </div>
               <div className="h-12 w-12 bg-purple-100 rounded-lg flex items-center justify-center">
@@ -342,8 +350,8 @@ export default function BillingPage() {
                 <div key={plan.plan} className="flex justify-between items-center">
                   <div className="flex items-center gap-2">
                     <div className={`w-3 h-3 rounded-full ${
-                      plan.plan === 'Enterprise' ? 'bg-purple-500' :
-                      plan.plan === 'Professional' ? 'bg-blue-500' : 'bg-green-500'
+                      plan.type === 'enterprise' ? 'bg-purple-500' :
+                      plan.type === 'professional' ? 'bg-blue-500' : 'bg-green-500'
                     }`} />
                     <span className="text-sm font-medium">{plan.plan}</span>
                   </div>
