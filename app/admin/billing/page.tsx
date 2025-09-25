@@ -142,6 +142,15 @@ export default function BillingPage() {
         </div>
         <div className="flex gap-3">
           <Link
+            href="/admin/billing/invoices"
+            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
+          >
+            <div className="flex items-center gap-2">
+              <FileText className="h-4 w-4" />
+              <span>Invoices</span>
+            </div>
+          </Link>
+          <Link
             href="/admin/billing/licenses"
             className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
           >
@@ -396,10 +405,10 @@ export default function BillingPage() {
               ))}
             </div>
             <Link
-              href="/admin/billing/transactions"
+              href="/admin/billing/invoices"
               className="mt-4 flex items-center justify-center gap-2 text-sm text-red-600 hover:text-red-700 transition-colors"
             >
-              View all transactions
+              View all invoices
               <ChevronRight className="h-4 w-4" />
             </Link>
           </CardContent>
@@ -414,6 +423,14 @@ export default function BillingPage() {
         </CardHeader>
         <CardContent>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+            <Link
+              href="/admin/billing/invoices"
+              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
+            >
+              <FileText className="h-8 w-8 mx-auto mb-2 text-red-600" />
+              <p className="font-medium">Manage Invoices</p>
+              <p className="text-xs text-gray-500 mt-1">View and manage all invoices</p>
+            </Link>
             <Link
               href="/admin/billing/licenses"
               className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
@@ -438,14 +455,6 @@ export default function BillingPage() {
               <p className="font-medium">Usage Reports</p>
               <p className="text-xs text-gray-500 mt-1">Monitor resource usage</p>
             </Link>
-            <button
-              onClick={handleExportReports}
-              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-            >
-              <FileText className="h-8 w-8 mx-auto mb-2 text-red-600" />
-              <p className="font-medium">Export Reports</p>
-              <p className="text-xs text-gray-500 mt-1">Download billing data</p>
-            </button>
           </div>
         </CardContent>
       </Card>
