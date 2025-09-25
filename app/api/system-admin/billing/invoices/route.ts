@@ -98,11 +98,12 @@ export const GET = withSystemAdmin(async (
 
     // Calculate statistics
     const now = new Date();
+    const nowString = now.toISOString();
     const [stats] = await db
       .select({
         totalRevenue: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'succeeded' THEN total END), 0) AS DECIMAL(10,2))`,
         pendingAmount: sql<number>`CAST(COALESCE(SUM(CASE WHEN status = 'pending' THEN total END), 0) AS DECIMAL(10,2))`,
-        overdueCount: sql<number>`CAST(COUNT(CASE WHEN status = 'pending' AND due_date < ${now} THEN 1 END) AS INTEGER)`,
+        overdueCount: sql<number>`CAST(COUNT(CASE WHEN status = 'pending' AND due_date < ${nowString} THEN 1 END) AS INTEGER)`,
         averageInvoiceValue: sql<number>`CAST(COALESCE(AVG(total), 0) AS DECIMAL(10,2))`,
       })
       .from(invoices);
