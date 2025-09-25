@@ -123,7 +123,7 @@ export default function InvoicesPage() {
   );
 
   // Fetch organizations for the create form
-  const { data: orgsData } = useAdminAPI<{ organizations: { id: number; name: string; email: string }[] }>(
+  const { data: organizations } = useAdminAPI<{ id: number; name: string }[]>(
     `/api/system-admin/organizations`
   );
 
@@ -772,9 +772,9 @@ export default function InvoicesPage() {
                   <SelectValue placeholder="Select an organization" />
                 </SelectTrigger>
                 <SelectContent>
-                  {orgsData?.organizations.map((org) => (
+                  {organizations?.map((org) => (
                     <SelectItem key={org.id} value={org.id.toString()}>
-                      {org.name} ({org.email})
+                      {org.name}
                     </SelectItem>
                   ))}
                 </SelectContent>

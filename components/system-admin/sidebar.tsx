@@ -56,10 +56,10 @@ const navigation: NavItem[] = [
     ],
   },
   {
-    label: 'Licensing',
-    icon: Key,
+    label: 'Billing',
+    icon: FileText,
     children: [
-      { label: 'License Management', href: '/admin/billing/licenses', icon: Key },
+      { label: 'Invoices', href: '/admin/billing/invoices', icon: FileText },
       { label: 'Subscription Plans', href: '/admin/billing/plans', icon: Package },
       { label: 'Usage Reports', href: '/admin/billing/usage', icon: BarChart3 },
     ],

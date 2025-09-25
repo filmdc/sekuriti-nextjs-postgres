@@ -47,9 +47,6 @@ export const teams = pgTable('teams', {
   website: varchar('website', { length: 255 }),
   // System admin fields for organization management
   status: varchar('status', { length: 20 }).notNull().default('active'), // active, suspended, trial, expired
-  licenseCount: integer('license_count').notNull().default(5), // Number of allowed users
-  licenseType: varchar('license_type', { length: 50 }).default('standard'), // standard, professional, enterprise
-  expiresAt: timestamp('expires_at'), // License expiration date
   trialEndsAt: timestamp('trial_ends_at'), // Trial period end date
   customDomain: varchar('custom_domain', { length: 255 }), // Custom domain for white-labeling
   allowedEmailDomains: text('allowed_email_domains'), // JSON array of allowed email domains

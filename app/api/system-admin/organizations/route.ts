@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server';
 import { withSystemAdmin, logSystemAction } from '@/lib/auth/system-admin';
 import { db } from '@/lib/db/drizzle';
 import { teams, teamMembers, users, ActivityType } from '@/lib/db/schema';
-import { organizationLimits } from '@/lib/db/schema-system';
+import { subscriptions, subscriptionPlans } from '@/lib/db/schema-billing';
 import { sql, eq, desc } from 'drizzle-orm';
 import { hashPassword } from '@/lib/auth/session';
 
@@ -14,23 +14,31 @@ export const GET = withSystemAdmin(async (req: NextRequest, context: any) => {
         id: teams.id,
         name: teams.name,
         status: teams.status,
-        licenseType: teams.licenseType,
-        licenseCount: teams.licenseCount,
         createdAt: teams.createdAt,
         updatedAt: teams.updatedAt,
-        expiresAt: teams.expiresAt,
         trialEndsAt: teams.trialEndsAt,
         industry: teams.industry,
         size: teams.size,
         customDomain: teams.customDomain,
         website: teams.website,
+        // Get subscription info
+        planName: sql<string>`(
+          SELECT p.display_name FROM subscriptions s
+          JOIN subscription_plans p ON s.plan_id = p.id
+          WHERE s.organization_id = teams.id
+          AND s.status = 'active'
+          LIMIT 1
+        )`,
+        maxUsers: sql<number>`(
+          SELECT p.max_users FROM subscriptions s
+          JOIN subscription_plans p ON s.plan_id = p.id
+          WHERE s.organization_id = teams.id
+          AND s.status = 'active'
+          LIMIT 1
+        )`,
         // Get counts via subqueries
         userCount: sql<number>`(
           SELECT COALESCE(COUNT(*), 0) FROM team_members
-          WHERE team_id = teams.id
-        )`,
-        usedLicenses: sql<number>`(
-          SELECT COALESCE(COUNT(DISTINCT user_id), 0) FROM team_members
           WHERE team_id = teams.id
         )`,
         incidentCount: sql<number>`(
@@ -64,8 +72,7 @@ export const POST = withSystemAdmin(async (req: NextRequest, context: any) => {
       ownerEmail,
       ownerPassword,
       ownerName,
-      licenseType = 'standard',
-      licenseCount = 5,
+      planId, // ID of the subscription plan to assign
       status = 'active',
       industry,
       size,
@@ -122,14 +129,11 @@ export const POST = withSystemAdmin(async (req: NextRequest, context: any) => {
       .values({
         name,
         status,
-        licenseType,
-        licenseCount,
         industry,
         size,
         customDomain,
         website,
         trialEndsAt,
-        expiresAt: status === 'trial' ? trialEndsAt : null,
       })
       .returning();
 
@@ -140,18 +144,31 @@ export const POST = withSystemAdmin(async (req: NextRequest, context: any) => {
       role: 'owner',
     });
 
-    // Create organization limits
-    await db.insert(organizationLimits).values({
-      organizationId: organization.id,
-      maxUsers: licenseCount,
-      currentUsers: 1,
-      maxIncidents: licenseType === 'enterprise' ? 1000 : licenseType === 'professional' ? 500 : 100,
-      maxAssets: licenseType === 'enterprise' ? 5000 : licenseType === 'professional' ? 1000 : 500,
-      maxRunbooks: licenseType === 'enterprise' ? 500 : licenseType === 'professional' ? 100 : 50,
-      customDomainsAllowed: licenseType === 'enterprise',
-      whitelabelingAllowed: licenseType === 'enterprise',
-      ssoAllowed: licenseType !== 'standard',
-    });
+    // Create subscription if planId is provided
+    if (planId) {
+      const [plan] = await db
+        .select()
+        .from(subscriptionPlans)
+        .where(eq(subscriptionPlans.id, planId))
+        .limit(1);
+
+      if (plan) {
+        await db.insert(subscriptions).values({
+          organizationId: organization.id,
+          planId: plan.id,
+          status: trialDays ? 'trialing' : 'active',
+          billingInterval: 'monthly',
+          price: plan.monthlyPrice,
+          currency: plan.currency || 'USD',
+          startDate: new Date(),
+          currentPeriodStart: new Date(),
+          currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+          trialStart: trialDays ? new Date() : null,
+          trialEnd: trialEndsAt,
+          createdBy: ownerId,
+        });
+      }
+    }
 
     // Log the action
     await logSystemAction({
@@ -163,8 +180,7 @@ export const POST = withSystemAdmin(async (req: NextRequest, context: any) => {
       metadata: {
         name,
         ownerEmail,
-        licenseType,
-        licenseCount,
+        planId,
       },
     });
 
