@@ -29,14 +29,12 @@ type Organization = {
   id: number;
   name: string;
   status: string;
-  licenseType: string;
-  licenseCount: number;
+  planName: string | null;
+  maxUsers: number | null;
   userCount: number;
-  usedLicenses: number;
   incidentCount: number;
   assetCount: number;
   createdAt: string;
-  expiresAt: string | null;
   trialEndsAt: string | null;
 };
 
@@ -83,10 +81,15 @@ export default function ProvisioningPage() {
     active: organizations.filter(o => o.status === 'active').length,
     trial: organizations.filter(o => o.status === 'trial').length,
     suspended: organizations.filter(o => o.status === 'suspended').length,
-    totalLicenses: organizations.reduce((acc, org) => acc + org.licenseCount, 0),
-    usedLicenses: organizations.reduce((acc, org) => acc + org.usedLicenses, 0),
+    totalUsers: organizations.reduce((acc, org) => acc + (org.maxUsers || 0), 0),
+    activeUsers: organizations.reduce((acc, org) => acc + org.userCount, 0),
     averageUtilization: organizations.length > 0
-      ? Math.round((organizations.reduce((acc, org) => acc + (org.usedLicenses / org.licenseCount * 100), 0) / organizations.length))
+      ? Math.round((organizations.reduce((acc, org) => {
+          if (org.maxUsers && org.maxUsers > 0) {
+            return acc + (org.userCount / org.maxUsers * 100);
+          }
+          return acc;
+        }, 0) / organizations.filter(o => o.maxUsers && o.maxUsers > 0).length))
       : 0,
   };
 
@@ -126,7 +129,7 @@ export default function ProvisioningPage() {
     return daysLeft <= 7 && daysLeft > 0;
   });
 
-  const overLicenseLimit = organizations.filter(org => org.usedLicenses > org.licenseCount);
+  const overUserLimit = organizations.filter(org => org.maxUsers && org.userCount > org.maxUsers);
 
   if (loading) {
     return (
@@ -175,7 +178,7 @@ export default function ProvisioningPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">License Utilization</p>
+              <p className="text-sm text-gray-600">User Utilization</p>
               <p className="text-2xl font-bold mt-1">{stats.averageUtilization}%</p>
               <Progress value={stats.averageUtilization} className="mt-2" />
             </div>
@@ -186,9 +189,9 @@ export default function ProvisioningPage() {
         <Card className="p-6">
           <div className="flex items-center justify-between">
             <div>
-              <p className="text-sm text-gray-600">Active Licenses</p>
+              <p className="text-sm text-gray-600">Active Users</p>
               <p className="text-2xl font-bold mt-1">
-                {stats.usedLicenses} / {stats.totalLicenses}
+                {stats.activeUsers} / {stats.totalUsers}
               </p>
             </div>
             <Shield className="h-8 w-8 text-purple-600" />
@@ -207,7 +210,7 @@ export default function ProvisioningPage() {
       </div>
 
       {/* Alerts Section */}
-      {(trialsExpiringSoon.length > 0 || overLicenseLimit.length > 0 || provisioningQueue.length > 0) && (
+      {(trialsExpiringSoon.length > 0 || overUserLimit.length > 0 || provisioningQueue.length > 0) && (
         <div className="mb-8 space-y-4">
           {provisioningQueue.length > 0 && (
             <div className="bg-blue-50 border border-blue-200 rounded-lg p-4">
@@ -239,13 +242,13 @@ export default function ProvisioningPage() {
             </div>
           )}
 
-          {overLicenseLimit.length > 0 && (
+          {overUserLimit.length > 0 && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <div className="flex items-center">
                 <AlertCircle className="h-5 w-5 text-red-600 mr-3" />
                 <div className="flex-1">
                   <p className="text-red-800 font-medium">
-                    {overLicenseLimit.length} organizations exceeding license limits
+                    {overUserLimit.length} organizations exceeding user limits
                   </p>
                 </div>
               </div>
@@ -265,19 +268,19 @@ export default function ProvisioningPage() {
 
         <TabsContent value="overview" className="mt-6">
           <div className="grid lg:grid-cols-2 gap-6">
-            {/* License Distribution */}
+            {/* Plan Distribution */}
             <Card className="p-6">
-              <h3 className="text-lg font-semibold mb-4">License Distribution</h3>
+              <h3 className="text-lg font-semibold mb-4">Plan Distribution</h3>
               <div className="space-y-4">
                 <div>
                   <div className="flex justify-between mb-2">
                     <span className="text-sm text-gray-600">Enterprise</span>
                     <span className="text-sm font-medium">
-                      {organizations.filter(o => o.licenseType === 'enterprise').length} orgs
+                      {organizations.filter(o => o.planName?.toLowerCase().includes('enterprise')).length} orgs
                     </span>
                   </div>
                   <Progress
-                    value={(organizations.filter(o => o.licenseType === 'enterprise').length / stats.total) * 100}
+                    value={(organizations.filter(o => o.planName?.toLowerCase().includes('enterprise')).length / stats.total) * 100}
                     className="h-2"
                   />
                 </div>
@@ -285,11 +288,11 @@ export default function ProvisioningPage() {
                   <div className="flex justify-between mb-2">
                     <span className="text-sm text-gray-600">Professional</span>
                     <span className="text-sm font-medium">
-                      {organizations.filter(o => o.licenseType === 'professional').length} orgs
+                      {organizations.filter(o => o.planName?.toLowerCase().includes('professional')).length} orgs
                     </span>
                   </div>
                   <Progress
-                    value={(organizations.filter(o => o.licenseType === 'professional').length / stats.total) * 100}
+                    value={(organizations.filter(o => o.planName?.toLowerCase().includes('professional')).length / stats.total) * 100}
                     className="h-2"
                   />
                 </div>
@@ -297,11 +300,11 @@ export default function ProvisioningPage() {
                   <div className="flex justify-between mb-2">
                     <span className="text-sm text-gray-600">Standard</span>
                     <span className="text-sm font-medium">
-                      {organizations.filter(o => o.licenseType === 'standard').length} orgs
+                      {organizations.filter(o => o.planName?.toLowerCase().includes('standard') || !o.planName).length} orgs
                     </span>
                   </div>
                   <Progress
-                    value={(organizations.filter(o => o.licenseType === 'standard').length / stats.total) * 100}
+                    value={(organizations.filter(o => o.planName?.toLowerCase().includes('standard') || !o.planName).length / stats.total) * 100}
                     className="h-2"
                   />
                 </div>
@@ -431,8 +434,8 @@ export default function ProvisioningPage() {
                       <td className="px-4 py-3 text-sm">{org.name}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <span className="text-sm">{org.usedLicenses}/{org.licenseCount}</span>
-                          {org.usedLicenses > org.licenseCount && (
+                          <span className="text-sm">{org.userCount}/{org.maxUsers || '∞'}</span>
+                          {org.maxUsers && org.userCount > org.maxUsers && (
                             <AlertCircle className="h-4 w-4 text-red-500 ml-2" />
                           )}
                         </div>
@@ -473,11 +476,11 @@ export default function ProvisioningPage() {
 
               <div className="border rounded-lg p-4">
                 <div className="flex items-center justify-between mb-2">
-                  <h4 className="font-medium">License Limit Warnings</h4>
+                  <h4 className="font-medium">User Limit Warnings</h4>
                   <Badge variant="default">Active</Badge>
                 </div>
                 <p className="text-sm text-gray-600 mb-3">
-                  Alert organizations when they reach 80% of their license limit
+                  Alert organizations when they reach 80% of their user limit
                 </p>
                 <div className="flex gap-2">
                   <Button size="sm" variant="outline">Configure</Button>
