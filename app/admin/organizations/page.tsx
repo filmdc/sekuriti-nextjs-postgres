@@ -13,9 +13,9 @@ import {
   Users,
   Shield,
   Calendar,
-  ChevronRight,
+  Eye,
+  Edit,
   AlertCircle,
-  Settings,
   Package,
 } from 'lucide-react';
 
@@ -299,13 +299,15 @@ export default function OrganizationsPage() {
                     <td className="px-6 py-4 text-right">
                       <div className="flex items-center justify-end gap-2">
                         <Link href={`/admin/organizations/${org.id}`}>
-                          <Button variant="ghost" size="sm">
-                            <Settings className="h-4 w-4" />
+                          <Button variant="outline" size="sm">
+                            <Eye className="h-4 w-4 mr-2" />
+                            View
                           </Button>
                         </Link>
-                        <Link href={`/admin/organizations/${org.id}/details`}>
-                          <Button variant="ghost" size="sm">
-                            <ChevronRight className="h-4 w-4" />
+                        <Link href={`/admin/organizations/${org.id}/edit`}>
+                          <Button variant="outline" size="sm">
+                            <Edit className="h-4 w-4 mr-2" />
+                            Edit
                           </Button>
                         </Link>
                       </div>
