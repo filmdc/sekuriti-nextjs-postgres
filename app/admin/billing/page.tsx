@@ -137,7 +137,7 @@ export default function BillingPage() {
         <div>
           <h1 className="text-3xl font-bold text-gray-900">Billing Overview</h1>
           <p className="text-gray-500 mt-1">
-            Manage subscriptions, licenses, and revenue tracking
+            Manage subscriptions and revenue tracking
           </p>
         </div>
         <div className="flex gap-3">
@@ -148,15 +148,6 @@ export default function BillingPage() {
             <div className="flex items-center gap-2">
               <FileText className="h-4 w-4" />
               <span>Invoices</span>
-            </div>
-          </Link>
-          <Link
-            href="/admin/billing/licenses"
-            className="px-4 py-2 bg-white border border-gray-300 rounded-lg hover:bg-gray-50 transition-colors"
-          >
-            <div className="flex items-center gap-2">
-              <Package className="h-4 w-4" />
-              <span>Licenses</span>
             </div>
           </Link>
           <Link
@@ -422,7 +413,7 @@ export default function BillingPage() {
           <CardDescription>Common billing management tasks</CardDescription>
         </CardHeader>
         <CardContent>
-          <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-4">
             <Link
               href="/admin/billing/invoices"
               className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
@@ -430,14 +421,6 @@ export default function BillingPage() {
               <FileText className="h-8 w-8 mx-auto mb-2 text-red-600" />
               <p className="font-medium">Manage Invoices</p>
               <p className="text-xs text-gray-500 mt-1">View and manage all invoices</p>
-            </Link>
-            <Link
-              href="/admin/billing/licenses"
-              className="p-4 border rounded-lg hover:bg-gray-50 transition-colors text-center"
-            >
-              <Package className="h-8 w-8 mx-auto mb-2 text-blue-600" />
-              <p className="font-medium">Manage Licenses</p>
-              <p className="text-xs text-gray-500 mt-1">Allocate and track licenses</p>
             </Link>
             <Link
               href="/admin/billing/plans"
