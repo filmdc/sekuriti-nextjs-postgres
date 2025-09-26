@@ -197,7 +197,7 @@ export default function ProvisioningPage() {
             <div>
               <p className="text-sm text-gray-600">Active Users</p>
               <p className="text-2xl font-bold mt-1">
-                {stats.activeUsers} / {stats.totalUsers}
+                {stats.activeUsers}
               </p>
             </div>
             <Shield className="h-8 w-8 text-purple-600" />
