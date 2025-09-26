@@ -9,9 +9,18 @@ import { eq, sql } from 'drizzle-orm';
 // GET /api/system-admin/organizations/[id] - Get organization details
 export const GET = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: Promise<{ id: string }>, user: any }
+  context: any
 ) => {
   try {
+    // Check if context and params exist
+    if (!context || !context.params) {
+      console.error('Context or params missing:', context);
+      return NextResponse.json(
+        { error: 'Invalid request context' },
+        { status: 400 }
+      );
+    }
+
     const params = await context.params;
     const orgId = parseInt(params.id);
 
@@ -101,9 +110,16 @@ export const GET = withSystemAdmin(async (
 // PUT /api/system-admin/organizations/[id] - Update organization
 export const PUT = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: Promise<{ id: string }>, user: any }
+  context: any
 ) => {
   try {
+    if (!context || !context.params) {
+      return NextResponse.json(
+        { error: 'Invalid request context' },
+        { status: 400 }
+      );
+    }
+
     const params = await context.params;
     const orgId = parseInt(params.id);
     const data = await req.json();
@@ -202,9 +218,16 @@ export const PUT = withSystemAdmin(async (
 // DELETE /api/system-admin/organizations/[id] - Delete organization
 export const DELETE = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: Promise<{ id: string }>, user: any }
+  context: any
 ) => {
   try {
+    if (!context || !context.params) {
+      return NextResponse.json(
+        { error: 'Invalid request context' },
+        { status: 400 }
+      );
+    }
+
     const params = await context.params;
     const orgId = parseInt(params.id);
 
