@@ -76,13 +76,15 @@ export function withSystemAdmin(
         );
       }
 
-      // Add user to context for the handler
-      if (context) {
-        context.user = user;
-        context.isSystemAdmin = true;
-      }
+      // Pass context through as-is, adding user info
+      // Handlers will deal with awaiting params if needed
+      const enhancedContext = {
+        params: context?.params || context,
+        user,
+        isSystemAdmin: true
+      };
 
-      return handler(req, context);
+      return handler(req, enhancedContext);
     } catch (error) {
       console.error('System admin middleware error:', error);
       return NextResponse.json(

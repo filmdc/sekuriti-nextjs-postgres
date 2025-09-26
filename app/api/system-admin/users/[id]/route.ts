@@ -7,10 +7,11 @@ import { eq, sql } from 'drizzle-orm';
 // GET /api/system-admin/users/[id] - Get user details
 export const GET = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }> | { id: string }, user: any, isSystemAdmin: boolean }
 ) => {
   try {
-    const userId = parseInt(context.params.id);
+    const params = await Promise.resolve(context.params);
+    const userId = parseInt(params.id);
 
     const [user] = await db
       .select()
@@ -38,10 +39,11 @@ export const GET = withSystemAdmin(async (
 // PUT /api/system-admin/users/[id] - Update user
 export const PUT = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }> | { id: string }, user: any, isSystemAdmin: boolean }
 ) => {
   try {
-    const userId = parseInt(context.params.id);
+    const params = await Promise.resolve(context.params);
+    const userId = parseInt(params.id);
     const { name, email, isSystemAdmin, isOrganizationAdmin } = await req.json();
 
     // Check if user exists
@@ -99,10 +101,11 @@ export const PUT = withSystemAdmin(async (
 // DELETE /api/system-admin/users/[id] - Delete user
 export const DELETE = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }> | { id: string }, user: any, isSystemAdmin: boolean }
 ) => {
   try {
-    const userId = parseInt(context.params.id);
+    const params = await Promise.resolve(context.params);
+    const userId = parseInt(params.id);
 
     // Check if user exists
     const [existingUser] = await db
