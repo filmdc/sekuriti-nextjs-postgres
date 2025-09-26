@@ -41,9 +41,10 @@ type Organization = {
   size: string | null;
   customDomain: string | null;
   website: string | null;
-  email: string | null;
-  phone: string | null;
-  address: string | null;
+  email?: string | null;
+  phone?: string | null;
+  address?: string | null;
+  maxUsers?: number | null;
 };
 
 type TeamMember = {
@@ -86,21 +87,17 @@ export default function OrganizationViewPage() {
         throw new Error('Failed to fetch organization');
       }
       const orgData = await orgResponse.json();
-      setOrganization(orgData);
+      // The API returns { organization, limits, recentUsers }
+      setOrganization(orgData.organization || orgData);
 
-      // Fetch team members
-      const membersResponse = await fetch(`/api/system-admin/organizations/${id}/members`);
-      if (membersResponse.ok) {
-        const membersData = await membersResponse.json();
-        setTeamMembers(membersData);
+      // Fetch team members - use recentUsers from the organization response
+      if (orgData.recentUsers) {
+        setTeamMembers(orgData.recentUsers);
       }
 
-      // Fetch recent activity
-      const activityResponse = await fetch(`/api/system-admin/organizations/${id}/activity`);
-      if (activityResponse.ok) {
-        const activityData = await activityResponse.json();
-        setRecentActivity(activityData);
-      }
+      // Fetch recent activity - for now we'll leave this empty
+      // TODO: Implement activity endpoint
+      setRecentActivity([]);
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {

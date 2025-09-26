@@ -102,7 +102,22 @@ export default function OrganizationEditPage() {
         throw new Error('Failed to fetch organization');
       }
       const data = await response.json();
-      setFormData(data);
+      // The API returns { organization, limits, recentUsers }
+      const org = data.organization || data;
+      setFormData({
+        id: org.id,
+        name: org.name,
+        status: org.status || 'active',
+        planName: org.planName,
+        maxUsers: org.licenseCount || null,
+        industry: org.industry,
+        size: org.size,
+        customDomain: org.customDomain,
+        website: org.website,
+        email: org.email || null,
+        phone: org.phone,
+        address: org.address,
+      });
     } catch (err) {
       setError(err instanceof Error ? err.message : 'An error occurred');
     } finally {
@@ -127,7 +142,18 @@ export default function OrganizationEditPage() {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(formData),
+        body: JSON.stringify({
+          name: formData.name,
+          status: formData.status,
+          planName: formData.planName,
+          licenseCount: formData.maxUsers,
+          industry: formData.industry,
+          size: formData.size,
+          customDomain: formData.customDomain,
+          website: formData.website,
+          phone: formData.phone,
+          address: formData.address,
+        }),
       });
 
       if (!response.ok) {
