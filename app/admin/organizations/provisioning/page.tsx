@@ -81,15 +81,17 @@ export default function ProvisioningPage() {
     active: organizations.filter(o => o.status === 'active').length,
     trial: organizations.filter(o => o.status === 'trial').length,
     suspended: organizations.filter(o => o.status === 'suspended').length,
-    totalUsers: organizations.reduce((acc, org) => acc + (org.maxUsers || 0), 0),
-    activeUsers: organizations.reduce((acc, org) => acc + org.userCount, 0),
+    totalUsers: organizations.reduce((acc, org) => acc + (Number(org.maxUsers) || 0), 0),
+    activeUsers: organizations.reduce((acc, org) => acc + Number(org.userCount || 0), 0),
     averageUtilization: organizations.length > 0
       ? Math.round((organizations.reduce((acc, org) => {
-          if (org.maxUsers && org.maxUsers > 0) {
-            return acc + (org.userCount / org.maxUsers * 100);
+          const maxUsers = Number(org.maxUsers);
+          const userCount = Number(org.userCount || 0);
+          if (maxUsers && maxUsers > 0) {
+            return acc + (userCount / maxUsers * 100);
           }
           return acc;
-        }, 0) / organizations.filter(o => o.maxUsers && o.maxUsers > 0).length))
+        }, 0) / organizations.filter(o => o.maxUsers && Number(o.maxUsers) > 0).length))
       : 0,
   };
 
@@ -129,7 +131,11 @@ export default function ProvisioningPage() {
     return daysLeft <= 7 && daysLeft > 0;
   });
 
-  const overUserLimit = organizations.filter(org => org.maxUsers && org.userCount > org.maxUsers);
+  const overUserLimit = organizations.filter(org => {
+    const maxUsers = Number(org.maxUsers);
+    const userCount = Number(org.userCount || 0);
+    return maxUsers && userCount > maxUsers;
+  });
 
   if (loading) {
     return (
@@ -434,8 +440,8 @@ export default function ProvisioningPage() {
                       <td className="px-4 py-3 text-sm">{org.name}</td>
                       <td className="px-4 py-3">
                         <div className="flex items-center">
-                          <span className="text-sm">{org.userCount}/{org.maxUsers || '∞'}</span>
-                          {org.maxUsers && org.userCount > org.maxUsers && (
+                          <span className="text-sm">{Number(org.userCount || 0)}/{org.maxUsers ? Number(org.maxUsers) : '∞'}</span>
+                          {org.maxUsers && Number(org.userCount || 0) > Number(org.maxUsers) && (
                             <AlertCircle className="h-4 w-4 text-red-500 ml-2" />
                           )}
                         </div>
