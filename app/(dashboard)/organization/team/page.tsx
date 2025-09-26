@@ -24,19 +24,12 @@ import {
   AlertDialogTitle,
 } from '@/components/ui/alert-dialog';
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from '@/components/ui/dropdown-menu';
-import {
   Users,
   UserPlus,
   Mail,
   Shield,
-  MoreVertical,
+  Eye,
+  Edit,
   ChevronLeft,
   Clock,
   UserX,
@@ -498,47 +491,28 @@ export default function TeamManagementPage() {
                         </p>
                       </div>
                     </div>
-                    <DropdownMenu>
-                      <DropdownMenuTrigger asChild>
-                        <Button variant="ghost" size="icon">
-                          <MoreVertical className="h-4 w-4" />
-                        </Button>
-                      </DropdownMenuTrigger>
-                      <DropdownMenuContent align="end">
-                        <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                        <DropdownMenuSeparator />
-                        <DropdownMenuItem
-                          onClick={() => {
-                            // Handle view profile
-                          }}
-                        >
-                          View Profile
-                        </DropdownMenuItem>
-                        {member.role !== 'owner' && (
-                          <>
-                            <DropdownMenuItem
-                              onClick={() => {
-                                // Open role change dialog
-                              }}
-                            >
-                              <Key className="w-4 h-4 mr-2" />
-                              Change Role
-                            </DropdownMenuItem>
-                            <DropdownMenuSeparator />
-                            <DropdownMenuItem
-                              className="text-red-600"
-                              onClick={() => {
-                                setSelectedMember(member);
-                                setRemoveDialogOpen(true);
-                              }}
-                            >
-                              <UserX className="w-4 h-4 mr-2" />
-                              Remove from Team
-                            </DropdownMenuItem>
-                          </>
-                        )}
-                      </DropdownMenuContent>
-                    </DropdownMenu>
+                    <div className="flex gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Handle view profile
+                        }}
+                      >
+                        <Eye className="w-4 h-4 mr-2" />
+                        View
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => {
+                          // Handle edit profile
+                        }}
+                      >
+                        <Edit className="w-4 h-4 mr-2" />
+                        Edit
+                      </Button>
+                    </div>
                   </div>
                 </CardContent>
               </Card>
