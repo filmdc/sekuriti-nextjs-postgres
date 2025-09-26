@@ -64,6 +64,7 @@ export const subscriptionPlans = pgTable('subscription_plans', {
   // Visibility
   isActive: boolean('is_active').default(true).notNull(),
   isPublic: boolean('is_public').default(true).notNull(), // Show on pricing page
+  isDefault: boolean('is_default').default(false).notNull(), // Default plan for new signups
   sortOrder: integer('sort_order').default(0),
 
   // Metadata

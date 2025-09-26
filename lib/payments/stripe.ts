@@ -6,6 +6,9 @@ import {
   getUser,
   updateTeamSubscription
 } from '@/lib/db/queries';
+import { db } from '@/lib/db/drizzle';
+import { subscriptionPlans } from '@/lib/db/schema-billing';
+import { eq } from 'drizzle-orm';
 
 export const stripe = new Stripe(process.env.STRIPE_SECRET_KEY!, {
   apiVersion: '2025-04-30.basil'
@@ -24,7 +27,26 @@ export async function createCheckoutSession({
     redirect(`/sign-up?redirect=checkout&priceId=${priceId}`);
   }
 
-  const session = await stripe.checkout.sessions.create({
+  // Get the subscription plan to check for trial days
+  let trialDays: number | undefined;
+  const plans = await db
+    .select()
+    .from(subscriptionPlans)
+    .where(
+      eq(
+        priceId.includes('month')
+          ? subscriptionPlans.stripeMonthlyPriceId
+          : subscriptionPlans.stripeYearlyPriceId,
+        priceId
+      )
+    )
+    .limit(1);
+
+  if (plans.length > 0 && plans[0].trialDays) {
+    trialDays = plans[0].trialDays;
+  }
+
+  const sessionConfig: Stripe.Checkout.SessionCreateParams = {
     payment_method_types: ['card'],
     line_items: [
       {
@@ -37,11 +59,17 @@ export async function createCheckoutSession({
     cancel_url: `${process.env.BASE_URL}/pricing`,
     customer: team.stripeCustomerId || undefined,
     client_reference_id: user.id.toString(),
-    allow_promotion_codes: true,
-    subscription_data: {
-      trial_period_days: 14
-    }
-  });
+    allow_promotion_codes: true
+  };
+
+  // Only add trial_period_days if the plan has trial days configured
+  if (trialDays && trialDays > 0) {
+    sessionConfig.subscription_data = {
+      trial_period_days: trialDays
+    };
+  }
+
+  const session = await stripe.checkout.sessions.create(sessionConfig);
 
   redirect(session.url!);
 }

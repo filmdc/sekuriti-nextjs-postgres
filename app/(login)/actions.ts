@@ -16,6 +16,7 @@ import {
   ActivityType,
   invitations
 } from '@/lib/db/schema';
+import { subscriptionPlans, subscriptions } from '@/lib/db/schema-billing';
 import { comparePasswords, hashPassword, setSession } from '@/lib/auth/session';
 import { redirect } from 'next/navigation';
 import { cookies } from 'next/headers';
@@ -108,11 +109,18 @@ export const signIn = validatedAction(signInSchema, async (data, formData) => {
 const signUpSchema = z.object({
   email: z.string().email(),
   password: z.string().min(8),
+  name: z.string().min(1).max(100).optional(),
+  title: z.string().max(100).optional(),
+  organizationName: z.string().min(1).max(100).optional(),
+  industry: z.string().max(100).optional(),
+  size: z.string().max(50).optional(),
+  phone: z.string().max(50).optional(),
+  website: z.string().max(255).optional(),
   inviteId: z.string().optional()
 });
 
 export const signUp = validatedAction(signUpSchema, async (data, formData) => {
-  const { email, password, inviteId } = data;
+  const { email, password, name, title, organizationName, industry, size, phone, website, inviteId } = data;
 
   const existingUser = await db
     .select()
@@ -133,6 +141,9 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
   const newUser: NewUser = {
     email,
     passwordHash,
+    name: name || undefined,
+    title: title || undefined,
+    phone: phone || undefined,
     role: 'owner' // Default role, will be overridden if there's an invitation
   };
 
@@ -184,16 +195,38 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
       return { error: 'Invalid or expired invitation.', email, password };
     }
   } else {
-    // Create a new team if there's no invitation
+    // Check for default subscription plan
+    const [defaultPlan] = await db
+      .select()
+      .from(subscriptionPlans)
+      .where(eq(subscriptionPlans.isDefault, true))
+      .limit(1);
+
+    // Determine trial status and dates based on default plan
+    let organizationStatus: 'active' | 'trial' = 'active';
+    let trialEndsAt: Date | null = null;
+
+    if (defaultPlan && defaultPlan.trialDays && defaultPlan.trialDays > 0) {
+      organizationStatus = 'trial';
+      trialEndsAt = new Date(Date.now() + defaultPlan.trialDays * 24 * 60 * 60 * 1000);
+    }
+
+    // Create a new team with organization details
     const newTeam: NewTeam = {
-      name: `${email}'s Team`
+      name: organizationName || `${email}'s Organization`,
+      industry: industry || undefined,
+      size: size || undefined,
+      phone: phone || undefined,
+      website: website || undefined,
+      status: organizationStatus,
+      trialEndsAt: trialEndsAt
     };
 
     [createdTeam] = await db.insert(teams).values(newTeam).returning();
 
     if (!createdTeam) {
       return {
-        error: 'Failed to create team. Please try again.',
+        error: 'Failed to create organization. Please try again.',
         email,
         password
       };
@@ -201,6 +234,24 @@ export const signUp = validatedAction(signUpSchema, async (data, formData) => {
 
     teamId = createdTeam.id;
     userRole = 'owner';
+
+    // Create subscription if there's a default plan
+    if (defaultPlan) {
+      await db.insert(subscriptions).values({
+        organizationId: teamId,
+        planId: defaultPlan.id,
+        status: organizationStatus === 'trial' ? 'trialing' : 'active',
+        billingInterval: 'monthly',
+        price: defaultPlan.monthlyPrice,
+        currency: defaultPlan.currency || 'USD',
+        startDate: new Date(),
+        currentPeriodStart: new Date(),
+        currentPeriodEnd: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+        trialStart: organizationStatus === 'trial' ? new Date() : null,
+        trialEnd: trialEndsAt,
+        createdBy: createdUser.id
+      });
+    }
 
     await logActivity(teamId, createdUser.id, ActivityType.CREATE_TEAM);
   }
