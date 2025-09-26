@@ -9,10 +9,11 @@ import { eq, sql } from 'drizzle-orm';
 // GET /api/system-admin/organizations/[id] - Get organization details
 export const GET = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }>, user: any }
 ) => {
   try {
-    const orgId = parseInt(context.params.id);
+    const params = await context.params;
+    const orgId = parseInt(params.id);
 
     const [organization] = await db
       .select({
@@ -100,10 +101,11 @@ export const GET = withSystemAdmin(async (
 // PUT /api/system-admin/organizations/[id] - Update organization
 export const PUT = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }>, user: any }
 ) => {
   try {
-    const orgId = parseInt(context.params.id);
+    const params = await context.params;
+    const orgId = parseInt(params.id);
     const data = await req.json();
 
     // Get current organization data for comparison
@@ -200,10 +202,11 @@ export const PUT = withSystemAdmin(async (
 // DELETE /api/system-admin/organizations/[id] - Delete organization
 export const DELETE = withSystemAdmin(async (
   req: NextRequest,
-  context: { params: { id: string }, user: any }
+  context: { params: Promise<{ id: string }>, user: any }
 ) => {
   try {
-    const orgId = parseInt(context.params.id);
+    const params = await context.params;
+    const orgId = parseInt(params.id);
 
     // Check if organization exists
     const [org] = await db
