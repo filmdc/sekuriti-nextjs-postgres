@@ -4,6 +4,7 @@ import { getIncidents } from '@/lib/db/queries-ir';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { IncidentFilters } from '@/components/incidents/incident-filters';
+import { IncidentListClient } from './incident-list-client';
 import {
   AlertTriangle,
   Shield,
@@ -194,6 +195,15 @@ export default async function IncidentsPage({
           </Link>
         </Button>
       </div>
+
+      <Suspense fallback={<div>Loading...</div>}>
+        {(async () => {
+          const team = await getTeamForUser();
+          if (!team) return null;
+          const incidents = await getIncidents(team.id, params);
+          return <IncidentListClient incidents={incidents} />;
+        })()}
+      </Suspense>
 
       <Card>
         <CardHeader className="pb-3 sm:pb-6">

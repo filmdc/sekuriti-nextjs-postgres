@@ -83,18 +83,6 @@ export default async function AssetsPage({
           </p>
         </div>
         <div className="flex flex-col sm:flex-row gap-2 w-full sm:w-auto">
-          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
-            <Link href="/assets/import">
-              <Upload className="h-4 w-4 mr-2" />
-              <span className="sm:inline">Import</span>
-            </Link>
-          </Button>
-          <Button asChild variant="outline" size="sm" className="w-full sm:w-auto">
-            <Link href="/assets-template.csv" download>
-              <Download className="h-4 w-4 mr-2" />
-              <span className="sm:inline">Template</span>
-            </Link>
-          </Button>
           <Button asChild variant="outline" className="w-full sm:w-auto">
             <Link href="/assets/groups">
               <FolderTree className="h-4 w-4 mr-2" />

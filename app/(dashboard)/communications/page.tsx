@@ -33,6 +33,7 @@ import {
 } from '@/components/ui/dropdown-menu';
 import { CategoryFilter } from '@/components/communications/CategoryFilter';
 import { TemplateCard } from '@/components/communications/TemplateCard';
+import { CommunicationListClient } from './communication-list-client';
 
 const TEMPLATE_CATEGORIES = [
   { id: 'all', label: 'All Templates', icon: FileText },
@@ -183,6 +184,11 @@ export default function CommunicationTemplatesPage() {
             New Template
           </Link>
         </Button>
+      </div>
+
+      {/* Data Management Controls */}
+      <div className="mb-4">
+        <CommunicationListClient templates={filteredTemplates} />
       </div>
 
       <div className="mb-6 flex flex-col gap-4 sm:flex-row sm:items-center">

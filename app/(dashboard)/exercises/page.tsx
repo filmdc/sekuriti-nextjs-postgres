@@ -24,6 +24,7 @@ import { ExerciseCard } from '@/components/exercises/exercise-card';
 import { ExerciseFilters } from '@/components/exercises/exercise-filters';
 import { getUserProgress } from '@/lib/db/queries-exercise-progress';
 import { auth } from '@/lib/auth';
+import { ExerciseListClient } from './exercise-list-client';
 
 // Category icons mapping
 const categoryIcons = {
@@ -72,6 +73,9 @@ async function ExercisesContent() {
           </Button>
         </div>
       </div>
+
+      {/* Data Management Controls */}
+      <ExerciseListClient exercises={exercises} />
 
       {/* Progress Overview */}
       {userProgress && (

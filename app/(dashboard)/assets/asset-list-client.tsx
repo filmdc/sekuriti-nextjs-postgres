@@ -30,6 +30,7 @@ import { TagFilter } from '@/components/assets/tag-filter';
 import { BulkActionBar } from '@/components/assets/bulk-action-bar';
 import { BulkTagDialog } from '@/components/assets/bulk-tag-dialog';
 import { BulkGroupDialog } from '@/components/assets/bulk-group-dialog';
+import { DataManagementControls } from '@/components/data-management/data-management-controls';
 import {
   Search,
   Filter,
@@ -50,6 +51,9 @@ import {
   exportAssetsAction,
   deleteAssetAction
 } from '@/lib/actions/assets';
+import { exportAssetsEnhanced } from '@/lib/actions/data-export';
+import { importAssetsAction } from '@/lib/actions/data-import';
+import { toast } from '@/components/ui/use-toast';
 import Link from 'next/link';
 import type { Asset } from '@/lib/db/schema-ir';
 import type { AssetGroup, Tag } from '@/lib/db/schema-tags';
@@ -193,6 +197,98 @@ export function AssetListClient({
     window.URL.revokeObjectURL(url);
   };
 
+  const handleImport = async (data: any[], format: 'csv' | 'json' | 'excel') => {
+    try {
+      const result = await importAssetsAction(data, format);
+
+      if (result.success > 0) {
+        toast({
+          title: 'Import Successful',
+          description: `Successfully imported ${result.success} assets${result.failed > 0 ? ` (${result.failed} failed)` : ''}`,
+        });
+        router.refresh();
+      }
+
+      if (result.failed > 0 && result.errors) {
+        const errorMessages = result.errors.slice(0, 3).map(e => e.error).join(', ');
+        toast({
+          title: 'Import Partially Failed',
+          description: `${result.failed} assets failed to import: ${errorMessages}`,
+          variant: 'destructive'
+        });
+      }
+    } catch (error) {
+      toast({
+        title: 'Import Failed',
+        description: error instanceof Error ? error.message : 'Failed to import assets',
+        variant: 'destructive'
+      });
+    }
+  };
+
+  const validateAssetRow = (row: any) => {
+    const errors = [];
+
+    // Required fields
+    if (!row.name && !row.Name) {
+      errors.push('Name is required');
+    }
+
+    // Validate type
+    const validTypes = ['hardware', 'software', 'service', 'data', 'personnel', 'facility', 'vendor', 'contract'];
+    const type = (row.type || row.Type || '').toLowerCase();
+    if (type && !validTypes.includes(type)) {
+      errors.push(`Invalid type: ${type}. Must be one of: ${validTypes.join(', ')}`);
+    }
+
+    // Validate criticality
+    const validCriticalities = ['low', 'medium', 'high', 'critical'];
+    const criticality = (row.criticality || row.Criticality || '').toLowerCase();
+    if (criticality && !validCriticalities.includes(criticality)) {
+      errors.push(`Invalid criticality: ${criticality}. Must be one of: ${validCriticalities.join(', ')}`);
+    }
+
+    // Validate status
+    const validStatuses = ['active', 'inactive', 'maintenance', 'retired'];
+    const status = (row.status || row.Status || '').toLowerCase();
+    if (status && !validStatuses.includes(status)) {
+      errors.push(`Invalid status: ${status}. Must be one of: ${validStatuses.join(', ')}`);
+    }
+
+    // Validate date format
+    if (row.expirationDate) {
+      const date = new Date(row.expirationDate);
+      if (isNaN(date.getTime())) {
+        errors.push('Invalid expiration date format');
+      }
+    }
+
+    return {
+      isValid: errors.length === 0,
+      errors: errors.length > 0 ? errors : undefined
+    };
+  };
+
+  // Prepare export data with proper formatting
+  const exportData = assets.map(({ asset, tags, groups }) => ({
+    id: asset.id,
+    name: asset.name,
+    type: asset.type,
+    identifier: asset.identifier || '',
+    description: asset.description || '',
+    criticality: asset.criticality || 'medium',
+    status: asset.status || 'active',
+    vendor: asset.vendor || '',
+    location: asset.location || '',
+    expirationDate: asset.expirationDate ? new Date(asset.expirationDate).toISOString().split('T')[0] : '',
+    mustContactVendor: asset.mustContactVendor || false,
+    primaryContact: asset.primaryContact || '',
+    tags: tags.map(t => t.name).join(', '),
+    groups: groups.map(g => g.name).join(', '),
+    createdAt: new Date(asset.createdAt).toISOString(),
+    updatedAt: new Date(asset.updatedAt).toISOString()
+  }));
+
   const handleSort = (column: string) => {
     if (sortBy === column) {
       setSortOrder(sortOrder === 'asc' ? 'desc' : 'asc');
@@ -302,6 +398,45 @@ export function AssetListClient({
 
                 {/* Filter Controls */}
                 <div className="flex gap-2">
+                  {/* Data Management Controls */}
+                  <DataManagementControls
+                    // Export props
+                    data={exportData}
+                    filename={`assets-${new Date().toISOString().split('T')[0]}`}
+                    columns={[
+                      { key: 'name', label: 'Asset Name' },
+                      { key: 'type', label: 'Type' },
+                      { key: 'identifier', label: 'Identifier' },
+                      { key: 'criticality', label: 'Criticality' },
+                      { key: 'status', label: 'Status' },
+                      { key: 'vendor', label: 'Vendor' },
+                      { key: 'location', label: 'Location' },
+                      { key: 'expirationDate', label: 'Expiration Date' },
+                      { key: 'mustContactVendor', label: 'Must Contact Vendor', formatter: (v) => v ? 'Yes' : 'No' },
+                      { key: 'primaryContact', label: 'Primary Contact' },
+                      { key: 'tags', label: 'Tags' },
+                      { key: 'groups', label: 'Groups' }
+                    ]}
+                    // Import props
+                    entityName="Assets"
+                    templateColumns={[
+                      { key: 'name', label: 'Asset Name', required: true, type: 'string', example: 'Production Database Server' },
+                      { key: 'type', label: 'Type', required: true, type: 'string', example: 'hardware, software, service, data, personnel, facility, vendor, contract' },
+                      { key: 'identifier', label: 'Identifier', type: 'string', example: 'ASSET-001' },
+                      { key: 'description', label: 'Description', type: 'string', example: 'Main production database server' },
+                      { key: 'criticality', label: 'Criticality', type: 'string', example: 'low, medium, high, critical' },
+                      { key: 'status', label: 'Status', type: 'string', example: 'active, inactive, maintenance, retired' },
+                      { key: 'vendor', label: 'Vendor', type: 'string', example: 'Dell Technologies' },
+                      { key: 'location', label: 'Location', type: 'string', example: 'Data Center 1, Rack A3' },
+                      { key: 'expirationDate', label: 'Expiration Date', type: 'date', example: '2024-12-31' },
+                      { key: 'mustContactVendor', label: 'Must Contact Vendor', type: 'boolean', example: 'true or false' },
+                      { key: 'primaryContact', label: 'Primary Contact', type: 'string', example: 'john.doe@example.com' }
+                    ]}
+                    onImport={handleImport}
+                    validateRow={validateAssetRow}
+                    maxRows={500}
+                  />
+
                   <Select
                     value={initialFilters.type || 'all'}
                     onValueChange={(value) => updateSearchParams({ type: value === 'all' ? null : value })}

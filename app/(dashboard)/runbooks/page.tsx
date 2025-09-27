@@ -15,6 +15,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import { getRunbooks } from '@/lib/db/queries-ir';
 import { getTeamForUser } from '@/lib/db/queries';
+import { RunbookListClient } from './runbook-list-client';
 
 const INCIDENT_CLASSIFICATIONS = [
   'malware',
@@ -66,6 +67,11 @@ export default async function RunbooksPage({
           </Button>
         </Link>
       </div>
+
+      {/* Data Management Controls */}
+      <Suspense fallback={<div>Loading...</div>}>
+        {runbooks && <RunbookListClient runbooks={runbooks} />}
+      </Suspense>
 
       {/* Filters */}
       <div className="flex flex-col gap-4 md:flex-row md:items-center">
